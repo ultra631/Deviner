@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Enchères à l'aveugle</title>
+<!-- version 8 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Table de jeu (fond sombre) */
+  --bg:#231650; --bg2:#2f1f6b; --ink:#120d24; --paper:#fbf6ea; --paper2:#efe7d4;
+  --txt:#ffffff; --mut:#c3b8ee; --line:#000;
+  --gold:#ffd23f; --yel:#ffd23f; --red:#ff3d6e; --green:#34d399; --blue:#7cc4ff; --lilac:#d9bdff;
+  --disp:"Dela Gothic One","Arial Black",system-ui,sans-serif;
+  --body:"M PLUS Rounded 1c","Rubik",system-ui,sans-serif;
+  --hard:4px 4px 0 var(--ink);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;color:var(--txt);font-family:var(--body);font-size:16px}
+body{min-height:100vh;
+  background:radial-gradient(120% 60% at 50% 0%,var(--bg2) 0%,var(--bg) 70%) fixed;overflow-x:hidden}
+#app{max-width:520px;margin:0 auto;padding:16px 14px 104px}
+h1,h2,.disp{font-family:var(--disp);font-weight:400;margin:0}
+h1{font-size:46px;line-height:1.02;text-align:center;margin:26px 0 14px;color:var(--yel);rotate:-3deg;
+  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:5px 5px 0 var(--ink)}
+h1 span{display:block;color:var(--paper)}
+h2{font-size:21px;margin:18px 0 10px;color:var(--gold)}
+p{margin:6px 0;color:var(--mut);line-height:1.45}
+.center{text-align:center}
+.muted{color:var(--mut);font-size:13px}
+
+/* Panneaux de papier : encre noire sur fond clair */
+.panel{--txt:var(--ink);--mut:#5c5478;--gold:#d81e5b;
+  background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:16px;padding:14px;margin-top:16px;box-shadow:5px 5px 0 var(--ink)}
+.panel h2{font-size:19px}
+label{display:block;font-size:13px;font-weight:700;color:var(--mut);margin:12px 0 5px}
+input,textarea{width:100%;background:#fff;border:2.5px solid var(--ink);color:var(--ink);border-radius:12px;padding:13px;font:inherit;font-weight:700;outline:none}
+input::placeholder,textarea::placeholder{color:#a59fb8;font-weight:400}
+input:focus,textarea:focus{box-shadow:0 0 0 3px var(--yel)}
+textarea{min-height:120px;resize:vertical;font-size:14px}
+
+button{font:inherit;font-weight:800;border:2.5px solid var(--ink);border-radius:14px;padding:14px 16px;color:var(--ink);background:var(--yel);cursor:pointer;width:100%;margin-top:12px;box-shadow:var(--hard);transition:transform .06s,box-shadow .06s}
+button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button.sec{background:var(--paper)}
+button.red{background:var(--red);color:#fff}
+button.ghost{background:transparent;color:var(--mut);border:2px dashed rgba(255,255,255,.35);box-shadow:none;font-weight:500}
+button.sm{width:auto;padding:7px 12px;margin:0;font-size:14px;box-shadow:3px 3px 0 var(--ink)}
+button:disabled{opacity:.45;box-shadow:none}
+button small{font-weight:500;opacity:.7}
+.err{background:#fff;border:2.5px solid var(--red);color:#b0123f;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:14px;font-weight:700;box-shadow:4px 4px 0 var(--red)}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.code{font-family:var(--disp);font-size:68px;letter-spacing:8px;text-align:center;color:var(--yel);line-height:1.05;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:5px 5px 0 var(--ink)}
+
+/* Joueurs */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:5px 11px;font-size:14px;font-weight:700;display:flex;gap:6px;align-items:center;box-shadow:2px 2px 0 var(--ink)}
+.chip b{font-family:var(--disp);font-weight:400;font-size:13px;color:#d81e5b}
+.chip.me{background:var(--lilac)}
+.chip.turn{background:var(--yel);rotate:-2deg;box-shadow:3px 3px 0 var(--red)}
+.chip.out{opacity:.45;text-decoration:line-through;box-shadow:none}
+
+/* Réglages */
+.opt{display:flex;gap:7px;flex-wrap:wrap}
+.opt button{width:auto;flex:1;margin:0;padding:10px 6px;background:#fff;font-weight:700;box-shadow:2px 2px 0 var(--ink)}
+.opt button.on{background:var(--ink);color:var(--yel)}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:48px;flex:none;margin:0;padding:8px 0;background:#fff;font-size:20px;box-shadow:2px 2px 0 var(--ink)}
+.step .val{flex:1;text-align:center;font-family:var(--disp);font-size:28px}
+
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top .disp{font-size:17px;color:var(--ink);background:var(--paper);border:2.5px solid var(--ink);border-radius:10px;padding:5px 12px;rotate:-2deg;box-shadow:3px 3px 0 var(--red)}
+
+/* Cartes */
+.lot{display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:12px;margin-top:20px}
+.card{position:relative;border-radius:14px;padding:7px 7px 9px;display:flex;flex-direction:column;align-items:center;text-align:center;border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);box-shadow:var(--hard)}
+.card:nth-child(odd){rotate:-1.6deg}
+.card:nth-child(even){rotate:1.4deg}
+.card:nth-child(3n){rotate:-.6deg}
+.card .av{position:relative;width:100%;aspect-ratio:1;border-radius:9px;border:2px solid var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:7px}
+.card .av span{font-family:var(--disp);font-size:38px;color:#fff;-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink)}
+.card .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.card .n{font-weight:800;font-size:14px;line-height:1.15;word-break:break-word}
+.card .s{font-size:10.5px;font-weight:500;color:#5c5478;margin-top:3px;line-height:1.2}
+.card.vis{box-shadow:5px 5px 0 var(--yel)}
+.card.hid{justify-content:center;min-height:150px;
+  background:radial-gradient(rgba(255,255,255,.28) 2px,transparent 2.3px) 0 0/11px 11px,linear-gradient(150deg,var(--red),#8a2be2)}
+.card.hid .q{font-family:var(--disp);font-size:64px;line-height:1;color:var(--yel);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:4px 4px 0 var(--ink)}
+.card.flip{animation:flip .6s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes flip{0%{transform:rotateY(90deg) scale(.5);opacity:0}100%{transform:none;opacity:1}}
+.tier{font-family:var(--disp);font-size:17px;line-height:1;width:32px;height:32px;border-radius:50%;border:2.5px solid var(--ink);display:inline-flex;align-items:center;justify-content:center;color:var(--ink);flex:none}
+.card .tier{position:absolute;z-index:2;top:-12px;right:-10px;rotate:12deg;animation:pop .4s both;animation-delay:inherit;box-shadow:2px 2px 0 var(--ink)}
+@keyframes pop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.35)}100%{transform:none}}
+.tS{background:var(--yel)} .tA{background:var(--lilac)} .tB{background:var(--blue)} .tC{background:#cfcbd9}
+.card.rS{background:var(--yel);box-shadow:5px 5px 0 var(--red)}
+.card.rA{background:#ecdcff}
+.card.rB{background:#dceeff}
+.card.rC{background:#dedbe6}
+.card.rC .av{filter:saturate(.55)}
+.card.flip.rS{animation:flip .6s cubic-bezier(.2,1.5,.4,1) both,shine 1s steps(2) infinite}
+@keyframes shine{0%{box-shadow:5px 5px 0 var(--red)}100%{box-shadow:5px 5px 0 #fff}}
+
+/* Mise en cours */
+.bid{position:relative;text-align:center;margin-top:18px;padding:18px 0 14px}
+.bid::before{content:"";position:absolute;left:50%;top:50%;width:330px;height:330px;translate:-50% -50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,rgba(255,210,63,.20) 0 5deg,transparent 5deg 12deg);
+  -webkit-mask:radial-gradient(circle,transparent 62px,#000 66px,transparent 70%);mask:radial-gradient(circle,transparent 62px,#000 66px,transparent 70%)}
+.bid .amt{position:relative;font-family:var(--disp);font-size:68px;line-height:1.05;color:var(--yel);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:5px 5px 0 var(--ink)}
+.bid .who{position:relative;color:var(--txt);font-size:14px;font-weight:700;margin-top:4px}
+.turnbar{margin-top:14px;text-align:center;padding:11px;border-radius:12px;background:rgba(0,0,0,.28);border:2px dashed rgba(255,255,255,.3);color:var(--mut)}
+.turnbar.mine{background:var(--yel);color:var(--ink);border:2.5px solid var(--ink);font-family:var(--disp);font-size:19px;rotate:-1.5deg;box-shadow:var(--hard);animation:nudge .9s ease-in-out infinite alternate}
+@keyframes nudge{from{scale:1}to{scale:1.035}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.grid2 button{margin:0}
+
+/* Équipes */
+.team{margin-top:8px}
+.team .t{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding:6px 0;border-bottom:1.5px dashed rgba(18,13,36,.22)}
+.team .t:last-child{border-bottom:0}
+.team .t small{font-weight:500;color:#5c5478}
+.team .tier{width:24px;height:24px;font-size:13px;border-width:2px}
+.rank{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.score{font-family:var(--disp);font-size:19px;color:var(--gold);white-space:nowrap}
+
+/* Révélation */
+.win{font-family:var(--disp);font-size:23px;text-align:center;margin-top:16px;line-height:1.25;color:var(--paper)}
+.win b{color:var(--gold);font-weight:400}
+.verdict{text-align:center;margin-top:20px;animation:stamp .45s cubic-bezier(.2,1.6,.4,1) both}
+.verdict .v{display:inline-block;font-family:var(--disp);font-size:28px;background:var(--ink);border:3px solid currentColor;border-radius:10px;padding:4px 16px;rotate:-4deg;box-shadow:4px 4px 0 rgba(0,0,0,.45)}
+.verdict .muted{margin-top:12px;color:var(--txt)}
+@keyframes stamp{0%{opacity:0;transform:scale(2.4)}100%{opacity:1;transform:none}}
+
+pre{background:var(--ink);border-radius:12px;padding:10px;overflow:auto;font-size:12px;color:#e9e3ff}
+
+/* Barre de réactions */
+.rbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:6px;padding:9px 8px calc(9px + env(safe-area-inset-bottom));background:var(--paper);border-top:3px solid var(--ink);z-index:5}
+.rbar button{width:auto;flex:1;max-width:54px;margin:0;padding:6px 0;font-size:23px;background:#fff;border-radius:50px;box-shadow:2px 2px 0 var(--ink)}
+.rbar button.mute{font-size:17px;background:var(--paper2)}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9}
+.float{position:absolute;bottom:70px;text-align:center;animation:rise 2.4s ease-out forwards}
+.float .e{font-size:50px;line-height:1;filter:drop-shadow(3px 3px 0 var(--ink))}
+.float .w{font-size:12px;font-weight:800;color:var(--ink);background:var(--yel);border:2px solid var(--ink);border-radius:8px;padding:0 7px;margin-top:3px;display:inline-block}
+@keyframes rise{0%{transform:translateY(0) scale(.4);opacity:0}15%{transform:translateY(-40px) scale(1.15);opacity:1}100%{transform:translateY(-62vh) scale(1);opacity:0}}
+.spark{position:absolute;font-size:26px;animation:spark 1.1s ease-out forwards}
+@keyframes spark{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.2) rotate(180deg);opacity:0}}
+
+/* ===== Animations façon anime ===== */
+body::before{content:"";position:fixed;inset:-30px;z-index:-1;pointer-events:none;
+  background:radial-gradient(rgba(255,255,255,.07) 1.6px,transparent 1.8px) 0 0/14px 14px;animation:drift 2.4s linear infinite}
+body::after{content:"";position:fixed;inset:-60%;z-index:-1;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.035) 0 3deg,transparent 3deg 11deg);animation:spin 90s linear infinite}
+@keyframes drift{to{transform:translate(14px,14px)}}
+@keyframes spin{to{rotate:360deg}}
+h1{animation:titleIn .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes titleIn{0%{scale:2.2;opacity:0}100%{scale:1;opacity:1}}
+.bid::before{animation:spin 16s linear infinite}
+.bid .amt{animation:bump .4s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes bump{0%{scale:1.7}100%{scale:1}}
+.card.vis{animation:floaty 2.6s ease-in-out infinite alternate}
+@keyframes floaty{from{translate:0 0}to{translate:0 -7px}}
+.card.hid{overflow:hidden}
+.card.hid::after{content:"";position:absolute;top:-20%;bottom:-20%;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-18deg);animation:sheen 2.6s ease-in-out infinite}
+.card.hid:nth-child(3)::after{animation-delay:.35s}
+.card.hid:nth-child(4)::after{animation-delay:.7s}
+.card.hid:nth-child(5)::after{animation-delay:1.05s}
+.card.hid:nth-child(6)::after{animation-delay:1.4s}
+@keyframes sheen{0%,35%{left:-60%}75%,100%{left:130%}}
+.card.hid .q{animation:wob 1.3s ease-in-out infinite alternate}
+.card.hid:nth-child(odd) .q{animation-delay:.4s}
+@keyframes wob{from{rotate:-9deg;scale:.94}to{rotate:9deg;scale:1.08}}
+/* aura d'énergie autour d'un rang S, reflet holo sur S et A */
+.card.flip.rS{animation:flip .6s cubic-bezier(.2,1.5,.4,1) both,aura 1.1s ease-out infinite}
+@keyframes aura{0%{box-shadow:5px 5px 0 var(--red),0 0 0 0 rgba(255,210,63,.95),0 0 0 0 rgba(255,61,110,.7)}100%{box-shadow:5px 5px 0 var(--red),0 0 0 14px rgba(255,210,63,0),0 0 0 26px rgba(255,61,110,0)}}
+.card.rS .av::after,.card.rA .av::after{content:"";position:absolute;top:-20%;bottom:-20%;left:-70%;width:50%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);transform:skewX(-18deg);animation:sheen 2.2s ease-in-out infinite;animation-delay:inherit}
+.chip.turn{animation:nudge .6s ease-in-out infinite alternate}
+.shake{animation:shake .45s linear}
+@keyframes shake{0%,100%{translate:0 0}15%{translate:-9px 5px}30%{translate:8px -6px}45%{translate:-7px -4px}60%{translate:6px 5px}80%{translate:-3px 2px}}
+.flash{position:absolute;inset:0;background:radial-gradient(circle,#fff 0%,rgba(255,255,255,.9) 30%,rgba(255,210,63,.6) 100%);animation:flash .55s ease-out forwards}
+.flash::after{content:"";position:absolute;inset:-50%;background:repeating-conic-gradient(from 0deg,rgba(18,13,36,.85) 0 2deg,transparent 2deg 9deg);-webkit-mask:radial-gradient(circle,transparent 22%,#000 60%);mask:radial-gradient(circle,transparent 22%,#000 60%)}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.slam{position:absolute;left:0;right:0;top:34%;height:130px;display:flex;align-items:center;justify-content:center;animation:slamOut 1.25s ease-in forwards}
+.slam .band{position:absolute;left:-10%;right:-10%;top:0;bottom:0;background:var(--ink);border-top:5px solid var(--yel);border-bottom:5px solid var(--red);rotate:-4deg;animation:bandIn .22s ease-out both}
+.slam.no .band{border-top-color:#8f88a8;border-bottom-color:#8f88a8}
+.slam .txt{position:relative;font-family:var(--disp);font-size:58px;line-height:1;color:var(--yel);rotate:-4deg;white-space:nowrap;-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill;text-shadow:5px 5px 0 var(--red);animation:slamIn .32s cubic-bezier(.2,1.7,.4,1) both}
+.slam.no .txt{color:#cfcbd9;text-shadow:5px 5px 0 #000}
+@keyframes bandIn{from{transform:scaleX(0)}to{transform:none}}
+@keyframes slamIn{0%{transform:scale(4);opacity:0}100%{transform:none;opacity:1}}
+@keyframes slamOut{0%,72%{opacity:1;transform:none}100%{opacity:0;transform:translateX(60%)}}
+.deco{overflow:hidden;margin:6px -14px 10px;padding:16px 0 18px;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.deco .track{display:flex;width:max-content;animation:marq 45s linear infinite}
+.deco .card{width:96px;flex:none;margin-right:14px}
+.deco .card .n{font-size:12px}
+.deco .card .s{display:none}
+@keyframes marq{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =====================================================================
+   1) CONFIG FIREBASE — colle ici la config de ton projet Firebase
+   (Console Firebase > Paramètres du projet > Tes applications > Config)
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyByNMyrY_mG7y_wxh5n26YO8xpF6D7H3Wk",
+  authDomain: "encheres-aveugle.firebaseapp.com",
+  databaseURL: "https://encheres-aveugle-default-rtdb.firebaseio.com",
+  projectId: "encheres-aveugle",
+  storageBucket: "encheres-aveugle.firebasestorage.app",
+  messagingSenderId: "640490096889",
+  appId: "1:640490096889:web:e7995a75d223cc6fb67a28"
+};
+
+/* =====================================================================
+   2) PERSONNAGES — classés par rang (S = le meilleur, C = le pire).
+   Tu peux en ajouter, en enlever ou changer leur rang ici.
+   ===================================================================== */
+const ANIME = {
+  "Dragon Ball":{S:["Goku","Vegeta","Beerus","Jiren","Broly","Whis"],A:["Gohan","Freezer","Cell","Majin Buu","Trunks","Goku Black","Hit","Gotenks"],B:["Piccolo","Krilin","C-17","C-18","Tortue Géniale","Ten Shin Han"],C:["Yamcha","Mr. Satan","Chaozu","Yajirobé"]},
+  "Naruto":{S:["Naruto","Sasuke","Madara","Itachi","Hashirama"],A:["Kakashi","Minato","Pain","Jiraya","Obito","Might Guy","Tsunade","Kisame","Killer Bee"],B:["Gaara","Rock Lee","Orochimaru","Shikamaru","Hinata","Neji","Deidara"],C:["Sakura","Tenten","Kiba","Ino","Choji"]},
+  "One Piece":{S:["Luffy","Shanks","Barbe Blanche","Kaido","Big Mom","Akainu","Roger","Garp"],A:["Zoro","Mihawk","Barbe Noire","Law","Ace","Doflamingo","Sanji","Jinbe","Sabo","Aokiji","Kizaru","Crocodile","Katakuri","Kid"],B:["Boa Hancock","Nami","Chopper","Robin","Franky","Brook"],C:["Usopp","Baggy"]},
+  "Bleach":{S:["Ichigo","Aizen","Yamamoto","Yhwach"],A:["Kenpachi","Byakuya","Urahara","Ulquiorra","Hitsugaya","Yoruichi","Unohana","Kyoraku","Gin","Starrk","Barragan","Harribel","Mayuri"],B:["Grimmjow","Rukia","Renji","Soi Fon","Ukitake","Tosen","Ishida","Nnoitra"],C:["Kon","Orihime","Chad"]},
+  "Hunter x Hunter":{S:["Meruem","Netero","Neferupito","Ging"],A:["Gon","Kirua","Hisoka","Kuroro","Kurapika","Feitan","Zeno Zoldyck","Silva Zoldyck","Irumi","Biscuit","Kaito","Shaiapouf","Menthuthuyoupi","Morel","Uvogin"],B:["Leolio","Knuckle","Machi","Nobunaga"],C:["Wing","Zushi","Tonpa"]},
+  "My Hero Academia":{S:["All Might","All For One","Star and Stripe"],A:["Deku","Bakugo","Todoroki","Endeavor","Shigaraki","Hawks","Mirio","Dabi","Overhaul","Mirko"],B:["Aizawa","Tamaki","Nejire","Kirishima","Uraraka","Iida","Tsuyu","Momo Yaoyorozu","Tokoyami","Toga","Stain","Best Jeanist"],C:["Mineta","Kaminari"]},
+  "Jujutsu Kaisen":{S:["Gojo","Sukuna","Kenjaku"],A:["Yuta","Toji","Geto","Yuji","Maki","Todo","Choso","Mahito","Jogo","Hakari","Kashimo","Higuruma","Yuki Tsukumo"],B:["Megumi","Nanami","Nobara","Inumaki","Hanami","Dagon","Mei Mei","Naobito","Mechamaru","Uraume"],C:["Panda","Miwa"]},
+  "Demon Slayer":{S:["Muzan","Kokushibo","Gyomei","Doma","Yoriichi"],A:["Tanjiro","Rengoku","Giyu","Akaza","Tengen","Shinobu","Mitsuri","Obanai","Sanemi","Muichiro","Gyutaro","Hantengu"],B:["Nezuko","Inosuke","Zenitsu","Daki","Rui","Enmu","Kanao","Genya","Gyokko","Kaigaku","Urokodaki"]},
+  "L'Attaque des Titans":{S:["Livaï","Eren"],A:["Mikasa","Erwin","Reiner","Hansi","Bertolt","Sieg","Kenny"],B:["Armin","Annie","Jean","Historia","Ymir","Peak","Porco","Falco"],C:["Sasha","Conny","Gaby","Hannes","Floch","Marco"]},
+  "One Punch Man":{S:["Saitama","Blast","Orochi"],A:["Garou","Boros","Tatsumaki","Bang","Atomic Samurai","Metal Bat","Flashy Flash","Watchdog Man","Sweet Mask","Metal Knight"],B:["Genos","Fubuki","Speed-o'-Sound Sonic","Puri-Puri Prisoner","Pig God","Zombieman","Child Emperor","Carnage Kabuto","Deep Sea King","Tank Top Master"],C:["King","Mumen Rider"]},
+  "Fullmetal Alchemist":{S:["Father","Hohenheim"],A:["Edward Elric","Roy Mustang","King Bradley","Envy","Lust","Greed","Pride","Alex Louis Armstrong","Olivier Armstrong","Izumi Curtis","Kimblee"],B:["Alphonse","Scar","Riza Hawkeye","Gluttony","Sloth","Ling Yao","Lan Fan"],C:["Winry","Maes Hughes","May Chang"]},
+  "Death Note":{A:["Light Yagami","L","Near"],B:["Ryuk","Mello","Soichiro Yagami","Rem","Teru Mikami","Naomi Misora"],C:["Misa","Watari","Matsuda","Kiyomi Takada","Raye Penber","Aizawa","Mogi","Matt","Sayu Yagami","Higuchi"]},
+  "JoJo's Bizarre Adventure":{S:["Jotaro","Dio","Kars","Kira Yoshikage","Diavolo","Pucci","Funny Valentine"],A:["Giorno","Joseph Joestar","Josuke","Jonathan Joestar","Jolyne","Johnny Joestar","Gyro Zeppeli","Bruno Bucciarati"],B:["Kakyoin","Polnareff","Avdol","Iggy","Caesar Zeppeli","Okuyasu","Rohan Kishibe","Mista"],C:["Speedwagon"]},
+  "Chainsaw Man":{S:["Makima","Pochita","Darkness Devil"],A:["Denji","Kishibe","Reze","Quanxi","Yoru","Santa Claus"],B:["Power","Aki","Himeno","Angel Devil","Beam","Katana Man","Asa Mitaka","Yoshida","Nayuta","Violence"],C:["Kobeni"]},
+  "Solo Leveling":{S:["Sung Jinwoo","Beru","Thomas Andre","Liu Zhigang","Sung Il-Hwan","Antares","Ashborn","Bellion"],A:["Igris","Go Gunhee","Choi Jong-In","Baek Yoonho","Goto Ryuji","Tusk","Hwang Dongsoo"],B:["Cha Hae-In","Woo Jinchul","Min Byung-Gyu","Iron","Kaisel","Kang Taeshik"],C:["Yoo Jinho","Sung Jinah"]},
+  "Black Clover":{S:["Julius Novachrono","Mereoleona","Licht","Zenon","Dante","Lucifero"],A:["Asta","Yuno","Yami","Fuegoleon","Nozel","Nacht","William Vangeance","Jack the Ripper","Charlotte"],B:["Noelle","Luck","Magna","Vanessa","Charmy","Gauche","Zora","Langris","Secre"],C:["Finral","Mimosa"]},
+  "Fairy Tail":{S:["Gildarts","Zeleph","Acnologia","August","Irene"],A:["Natsu","Erza","Gajeel","Luxus","Mirajane","Makarof","Jellal","Sting","Mavis"],B:["Grey","Wendy","Rogue","Juvia","Elfman","Cana"],C:["Lucy","Happy","Carla","Lisanna"]},
+  "Seven Deadly Sins":{S:["Meliodas","Escanor","Merlin","Zeldris","Estarossa","Roi Démon","Mael","Chandler","Cusack"],A:["Ban","King","Galand","Monspeet","Derieri","Fraudrin","Gloxinia","Drole"],B:["Diane","Gowther","Arthur","Gilthunder","Hendrickson","Dreyfus"],C:["Elizabeth","Hawk","Elaine"]},
+  "Tokyo Ghoul":{S:["Arima","Eto","Yoshimura"],A:["Kaneki","Juzo Suzuya","Amon","Tatara","Yomo","Jason","Furuta","Takizawa","Rize"],B:["Touka","Ayato","Tsukiyama","Hinami","Nishiki","Uta","Mado","Akira Mado","Urie","Mutsuki"],C:["Hide"]},
+  "Mob Psycho 100":{S:["Mob","Toichiro Suzuki","Serizawa","Mogami"],A:["Ritsu","Teru","Sho Suzuki","Shimazaki","Minegishi","Shibata","Hatori"],B:["Ekubo","Koyama","Sakurai","Matsuo"],C:["Reigen","Tome","Musashi Goda","Tenga Onigawara","Tsubomi","Mezato"]},
+  "Code Geass":{S:["Lelouch","Charles zi Britannia"],A:["Suzaku","C.C.","Kallen","Schneizel","Xingke","Bismarck"],B:["Cornelia","Jeremiah","Rolo","Tohdoh","Gino","Anya Alstreim","Mao","V.V."],C:["Nunnally","Shirley","Euphemia","Lloyd","Ohgi","Villetta","Diethard","Milly"]},
+  "Sword Art Online":{S:["Heathcliff","Yuuki","Administrator","Gabriel Miller"],A:["Kirito","Alice","Eugeo","Bercouli","PoH"],B:["Asuna","Sinon","Leafa","Death Gun","Eiji","Fanatio"],C:["Klein","Agil","Silica","Lisbeth","Yui","Oberon","Kibaou","Sachi"]},
+  "Haikyu!!":{A:["Kageyama","Ushijima","Oikawa","Nishinoya","Kuroo","Bokuto","Atsumu Miya","Sakusa","Hoshiumi"],B:["Shoyo Hinata","Tsukishima","Tanaka","Daichi","Asahi","Iwaizumi","Kenma","Akaashi","Tendo","Aone"],C:["Yamaguchi","Sugawara","Lev"]},
+  "Blue Lock":{A:["Isagi","Rin Itoshi","Sae Itoshi","Barou","Kaiser","Noel Noa","Shidou"],B:["Nagi","Bachira","Chigiri","Kunigami","Reo","Aiku","Karasu","Otoya","Yukimiya","Gagamaru","Hiori","Kurona","Ness","Lorenzo"],C:["Igaguri","Raichi","Ego Jinpachi","Zantetsu","Niko","Aryu","Tokimitsu"]},
+  "Spy x Family":{A:["Yor","Loid"],B:["Yuri Briar","Fiona Frost","Sylvia Sherwood","Donovan Desmond","Matthew McMahon"],C:["Anya","Franky","Damian Desmond","Becky Blackbell","Bond","Henry Henderson","Camilla","Millie","Sharon","Dominic","Ewen","Emile","Melinda Desmond","Demetrius Desmond"]},
+  "Frieren":{S:["Frieren","Flamme","Serie","Macht","Solitär"],A:["Himmel","Eisen","Aura","Denken","Kraft","Qual","Lernen"],B:["Fern","Stark","Heiter","Lügner","Linie","Übel","Land","Wirbel","Sein","Genau","Sense","Methode","Richter"],C:["Draht","Laufen","Kanne","Lawine","Edel"]},
+  "Dandadan":{S:["Evil Eye","Comte de Saint-Germain","Reiko Kashima"],A:["Mémé Turbo","Seiko Ayase","Jiji","Acrobatic Silky","Unji Zuma","Mongolian Death Worm"],B:["Okarun","Momo","Aira","Vamola","Serpo","Flatwoods Monster","Mr. Mantis Shrimp","Manjiro","Nessie"],C:["Kinta","Rin Sawaki","Muko","Kouki Yukishiro","Taro"]},
+  "Vinland Saga":{S:["Thors","Thorkell"],A:["Thorfinn","Askeladd","Canute","Bjorn","Thorgil","Snake","Garm"],B:["Floki","Hild","Sigurd","Sweyn","Halfdan","Vagn"],C:["Leif Erikson","Einar","Arnheid","Ketil","Olmar","Gudrid","Ylva","Helga","Ragnar","Willibald"]},
+  "Berserk":{S:["Guts","Griffith","Zodd","Skull Knight","Void","Slan","Ubik","Conrad","Ganishka"],A:["Serpico","Schierke","Mozgus","Grunbeld","Locus","Irvine","Wyald"],B:["Casca","Judeau","Pippin","Rosine","Le Comte","Azan"],C:["Corkus","Rickert","Puck","Farnese","Isidro","Bazuso"]},
+  "Cowboy Bebop":{A:["Spike","Vicious","Vincent Volaju","Pierrot le Fou"],B:["Jet Black","Faye Valentine","Ed","Gren","Electra","Lin","Asimov Solensan"],C:["Ein","Julia","Andy","Shin","Punch","Judy","Rocco Bonnaro","Laughing Bull","Annie"]},
+  "Gintama":{S:["Kamui","Umibozu","Hosen","Utsuro"],A:["Gintoki","Kagura","Hijikata","Okita","Katsura","Takasugi","Nobume","Oboro"],B:["Sadaharu","Kondo","Sakamoto","Otae","Sachan","Tsukuyo","Kyubei","Tama","Isaburo Sasaki","Zenzo Hattori"],C:["Shinpachi","Elizabeth","Hasegawa","Yamazaki","Otose","Catherine"]},
+  "Re:Zero":{S:["Puck","Roswaal","Reinhard","Echidna","Satella","Regulus","Reid Astrea","Cecilus"],A:["Beatrice","Garfiel","Wilhelm","Priscilla","Julius","Elsa","Petelgeuse"],B:["Rem","Emilia","Ram","Crusch","Felix","Frederica","Al","Meili"],C:["Subaru","Felt","Otto","Anastasia","Petra"]},
+  "Konosuba":{S:["Vanir","Eris"],A:["Wiz","Chris","Verdia","Hans","Sylvia","Wolbach","Iris"],B:["Megumin","Darkness","Yunyun","Mitsurugi","Zesta"],C:["Kazuma","Aqua","Luna","Dust","Claire","Sena","Komekko","Chomusuke","Alderp","Rin","Hyoizaburo","Yuiyui","Cecily"]},
+  "Dr. Stone":{A:["Senku","Tsukasa","Kohaku","Hyoga","Stanley Snyder","Moz","Matsukaze"],B:["Chrome","Kinro","Kaseki","Ryusui","Ukyo","Homura","Magma","Dr. Xeno","Ibara","Kirisame","Nikki"],C:["Taiju","Yuzuriha","Gen Asagiri","Ginro","Suika","Ruri","François","Byakuya Ishigami","Yo"]},
+  "Fire Force":{S:["Benimaru Shinmon","Sho Kusakabe","Dragon"],A:["Shinra","Arthur Boyle","Joker","Leonard Burns","Haumea","Charon","Ogun Montgomery","Kurono"],B:["Maki Oze","Akitaru Obi","Takehisa Hinawa","Princess Hibana","Karim","Vulcan","Arrow","Konro","Juggernaut","Nataku","Inca","Rekka"],C:["Iris","Tamaki Kotatsu","Viktor Licht","Lisa","Pan Ko Paat"]},
+  "Tokyo Revengers":{A:["Mikey","Izana","South Terano","Draken","Taiju Shiba"],B:["Baji","Hanma","Kakucho","Senju","Wakasa","Benkei","Angry","Chifuyu","Mitsuya","Kazutora","Sanzu","Inui","Smiley","Hakkai","Ran Haitani","Rindo Haitani","Pah-chin","Peh-yan"],C:["Takemichi","Kisaki","Kokonoi","Hinata Tachibana","Naoto","Emma","Shinichiro Sano","Akkun"]},
+  "Yu-Gi-Oh!":{S:["Exodia"],A:["Atem","Dragon Blanc aux Yeux Bleus"],B:["Yugi","Kaiba","Joey Wheeler","Bakura","Marik","Pegasus","Dartz","Magicien des Ténèbres"],C:["Téa","Tristan","Mai Valentine","Mokuba","Grand-père Muto","Duke Devlin","Serenity","Ishizu","Odion","Weevil Underwood","Rex Raptor","Mako Tsunami","Bandit Keith","Noah Kaiba","Rebecca","Kuriboh"]},
+  "Saint Seiya":{S:["Saga","Shaka","Dohko","Kanon","Poséidon","Hadès"],A:["Seiya","Shiryu","Hyoga","Shun","Ikki","Aiolia","Mû","Milo","Aioros","Shura","Camus","Rhadamanthe"],B:["Athéna","Aldébaran","Masque de Mort","Aphrodite","Hilda de Polaris"],C:["Marine","Shaina","Jabu","Kiki"]},
+  "Ken le Survivant":{S:["Kenshiro","Raoh","Toki","Souther","Kaioh"],A:["Shin","Rei","Shu","Juda","Fudo","Juza","Ryuga","Hyoh","Falco","Ryuken"],B:["Jagi","Shachi","Ein","Heart","Uighur"],C:["Yuria","Bat","Lin","Mamiya","Airi","Amiba","Jackal"]},
+  "Evangelion":{S:["Eva-01","Zeruel","Lilith","Adam"],A:["Kaworu","Eva-02","Ramiel"],B:["Shinji","Rei","Asuka","Misato","Gendo","Mari","Eva-00","Sachiel"],C:["Ritsuko","Kaji","Fuyutsuki","Toji Suzuhara","Kensuke","Hikari","Yui Ikari","Pen Pen","Maya Ibuki","Hyuga","Aoba","Keel Lorenz"]}
+};
+/* Points par rang : change-les ici si tu veux */
+const PTS = {S:10, A:6, B:3, C:1};
+
+//<LOGIC>
+/* =====================================================================
+   3) RÈGLES DU JEU (fonctions pures, sans Firebase)
+   ===================================================================== */
+const MAX_PLAYERS = 8;
+function arr(v){ return !v ? [] : (Array.isArray(v) ? v.filter(x => x != null) : Object.values(v)); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function animePool(){ const out=[]; for(const s in ANIME) for(const t in ANIME[s]) ANIME[s][t].forEach(n => out.push({n, s, t})); return out; }
+function pts(ch){ return PTS[ch && ch.t] || PTS.B; }
+function lotScore(lot){ return arr(lot && lot.c).reduce((a,ch) => a+pts(ch), 0); }
+function teamScore(room,p){ const lots=arr(room.lots); return arr(room.players[p] && room.players[p].team).reduce((a,i) => a+lotScore(lots[i]), 0); }
+function parseCustom(text){
+  const seen={}, out=[];
+  String(text||'').split(/\r?\n/).forEach(line => {
+    line=line.trim(); if(!line) return;
+    const parts=line.split(/\s+[-|–]\s+/).map(x => x.trim()).filter(Boolean);
+    let t='B';
+    if(parts.length>1 && /^[SABC]$/i.test(parts[parts.length-1])) t=parts.pop().toUpperCase();
+    const n=(parts[0]||'').slice(0,40), s=parts.slice(1).join(' - ').slice(0,40);
+    const k=(n+'|'+s).toLowerCase(); if(!n||seen[k]) return; seen[k]=1; out.push({n,s,t});
+  });
+  return out;
+}
+function buildPool(mode, customText){
+  if(mode==='custom') return parseCustom(customText);
+  if(mode==='mix') return animePool().concat(parseCustom(customText));
+  return animePool();
+}
+function buildLots(pool, size, count){
+  const p=shuffle(pool.slice()), lots=[];
+  for(let i=0;i<count;i++) lots.push({c:p.slice(i*size,(i+1)*size)});
+  return lots;
+}
+function isActive(room,p){ return !!(room.cur && room.cur.active && room.cur.active[p]); }
+
+function startGame(room, lots){
+  const s=room.settings;
+  room.order=shuffle(Object.keys(room.players||{}));
+  room.order.forEach(p => { room.players[p].budget=s.budget; room.players[p].team=null; });
+  room.lots=lots; room.votes=null;
+  beginLot(room,0);
+}
+function beginLot(room, idx){
+  const order=arr(room.order), active={};
+  order.forEach(p => { if((room.players[p].budget||0)>=1) active[p]=true; });
+  room.cur={idx, bid:0, bidder:'', active, turn:'', winner:'', price:0};
+  room.status='bidding';
+  const start=idx%order.length;
+  for(let i=0;i<order.length;i++){ const p=order[(start+i)%order.length]; if(active[p]){ room.cur.turn=p; return; } }
+  closeLot(room,'');
+}
+function closeLot(room, winner){
+  const c=room.cur;
+  c.turn=''; c.winner=winner||''; c.price=winner?c.bid:0;
+  if(winner){ const pl=room.players[winner]; pl.budget-=c.bid; pl.team=arr(pl.team).concat([c.idx]); }
+  room.status='reveal';
+}
+function advance(room, from){
+  const c=room.cur, order=arr(room.order);
+  if(!c.active) c.active={};
+  // ceux qui n'ont plus assez d'argent pour surenchérir sont sortis automatiquement
+  order.forEach(p => { if(c.active[p] && p!==c.bidder && (room.players[p].budget||0) < c.bid+1) delete c.active[p]; });
+  const act=order.filter(p => c.active[p]);
+  if(act.length===0) return closeLot(room,'');
+  if(c.bidder && act.length===1 && act[0]===c.bidder) return closeLot(room,c.bidder);
+  const i=order.indexOf(from);
+  for(let k=1;k<=order.length;k++){ const p=order[(i+k)%order.length]; if(c.active[p] && p!==c.bidder){ c.turn=p; return; } }
+  closeLot(room,c.bidder||'');
+}
+function doBid(room, pid, amount){
+  const c=room.cur;
+  if(room.status!=='bidding' || !c || c.turn!==pid) return false;
+  if(!Number.isInteger(amount) || amount<=c.bid || amount>(room.players[pid].budget||0)) return false;
+  c.bid=amount; c.bidder=pid; advance(room,pid); return true;
+}
+function doPass(room, pid){
+  const c=room.cur;
+  if(room.status!=='bidding' || !c || c.turn!==pid) return false;
+  if(c.active) delete c.active[pid];
+  advance(room,pid); return true;
+}
+function nextLot(room){
+  if(room.status!=='reveal') return false;
+  const n=arr(room.lots).length, idx=room.cur.idx+1;
+  if(idx<n) beginLot(room,idx);
+  else { room.votes=null; room.status = arr(room.order).length>=3 ? 'vote' : 'end'; }
+  return true;
+}
+function doVote(room, pid, target){
+  const order=arr(room.order);
+  if(room.status!=='vote' || pid===target || !order.includes(pid) || !order.includes(target)) return false;
+  if(!room.votes) room.votes={};
+  room.votes[pid]=target;
+  if(order.every(p => room.votes[p])) room.status='end';
+  return true;
+}
+function resetRoom(room){
+  room.status='lobby'; room.lots=null; room.cur=null; room.votes=null; room.order=null;
+  for(const p in room.players){ room.players[p].team=null; room.players[p].budget=room.settings.budget; }
+  return true;
+}
+//</LOGIC>
+
+/* =====================================================================
+   4) APPLICATION (Firebase + affichage)
+   ===================================================================== */
+const $app=document.getElementById('app');
+const configured = !!firebaseConfig.databaseURL && !/COLLE_ICI/.test(firebaseConfig.apiKey+firebaseConfig.databaseURL);
+let db=null, roomRef=null, room=null, code='', pid='', lastTurn='';
+const ui={name:'', joinCode:'', custom:'', bidInput:'', err:'', busy:false, copied:false, showTeams:false, mute:false};
+let lastHTML=null, lastReact=0, lastSent=0, first=true, fxTimers=[];
+const EMO=['😂','😱','🔥','💀','🤡','👏'];
+const $fx=document.getElementById('fx');
+
+/* ---------- sons (fabriqués par le navigateur, aucun fichier) ---------- */
+let actx=null;
+function unlockAudio(){
+  try{ if(!actx){ const A=window.AudioContext||window.webkitAudioContext; if(A) actx=new A(); } if(actx && actx.state==='suspended') actx.resume(); }catch(e){}
+}
+function tone(f, d, type, when, vol){
+  if(ui.mute || !actx) return;
+  try{
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime+(when||0);
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.001,t+d);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.02);
+  }catch(e){}
+}
+const SFX={
+  bid(){ tone(660,.12,'triangle'); tone(990,.16,'triangle',.08); },
+  pass(){ tone(240,.22,'sawtooth',0,.07); tone(170,.3,'sawtooth',.12,.07); },
+  turn(){ tone(880,.1); tone(1175,.22,'sine',.12); },
+  card(t, when){
+    if(t==='S'){ [784,988,1175,1568].forEach((f,i) => tone(f,.35,'triangle',when+i*.09,.16)); }
+    else if(t==='A'){ tone(660,.18,'triangle',when); tone(880,.28,'triangle',when+.1); }
+    else if(t==='C'){ tone(196,.3,'sawtooth',when,.08); tone(147,.45,'sawtooth',when+.15,.08); }
+    else tone(520,.2,'triangle',when);
+  },
+  slam(){ tone(140,.28,'square',0,.07); tone(90,.35,'sawtooth',.05,.07); },
+  win(when){ [523,659,784,1047].forEach((f,i) => tone(f,.3,'square',when+i*.12,.07)); },
+  end(){ [523,659,784,1047,784,1047,1319].forEach((f,i) => tone(f,.35,'triangle',i*.14,.14)); }
+};
+/* ---------- effets à l'écran ---------- */
+function floatEmoji(e, who){
+  if(!EMO.includes(e)) return;
+  const d=document.createElement('div'); d.className='float'; d.style.left=(8+Math.random()*70)+'%';
+  const a=document.createElement('div'); a.className='e'; a.textContent=e;
+  const b=document.createElement('div'); b.className='w'; b.textContent=who;
+  d.appendChild(a); d.appendChild(b); $fx.appendChild(d); setTimeout(() => d.remove(), 2500);
+}
+function sparkBurst(){
+  for(let i=0;i<14;i++){
+    const d=document.createElement('div'); d.className='spark'; d.textContent=i%2?'✨':'⭐';
+    const an=Math.PI*2*i/14, r=90+Math.random()*90;
+    d.style.left='48%'; d.style.top='42%'; d.style.setProperty('--dx',Math.cos(an)*r+'px'); d.style.setProperty('--dy',Math.sin(an)*r+'px');
+    $fx.appendChild(d); setTimeout(() => d.remove(), 1200);
+  }
+}
+/* Bandeau qui claque à l'écran façon titre d'anime (LOT 3, VENDU !, RÉSULTATS) */
+function slam(text, cls){
+  const d=document.createElement('div'); d.className='slam '+(cls||'');
+  const band=document.createElement('div'); band.className='band';
+  const t=document.createElement('div'); t.className='txt'; t.textContent=text;
+  d.appendChild(band); d.appendChild(t); $fx.appendChild(d); setTimeout(() => d.remove(), 1300);
+}
+/* Flash blanc + secousse quand un rang S sort */
+function impact(){
+  const f=document.createElement('div'); f.className='flash'; $fx.appendChild(f); setTimeout(() => f.remove(), 600);
+  $app.classList.remove('shake'); void $app.offsetWidth; $app.classList.add('shake'); setTimeout(() => $app.classList.remove('shake'), 500);
+  try{ navigator.vibrate && navigator.vibrate([60,40,120]); }catch(e){}
+}
+const REVEAL_START=1.0, REVEAL_STEP=0.8;   // secondes entre chaque carte révélée
+function onChange(prev, cur){
+  // réactions emoji
+  const rc=cur.react;
+  if(rc && rc.t && rc.t!==lastReact){ const show=!first && Date.now()-rc.t<8000; lastReact=rc.t; if(show) floatEmoji(rc.e, pname(rc.p)); }
+  if(!prev) return;
+  if(prev.status==='bidding' && cur.status==='bidding' && prev.cur.idx===cur.cur.idx){
+    if(cur.cur.bid>prev.cur.bid) SFX.bid(); else if(prev.cur.turn!==cur.cur.turn) SFX.pass();
+  }
+  if(prev.status==='bidding' && cur.status==='reveal'){
+    fxTimers.forEach(clearTimeout); fxTimers=[];
+    const cs=arr(arr(cur.lots)[cur.cur.idx].c);
+    cs.forEach((ch,i) => { if(i===0) return; const w=REVEAL_START+(i-1)*REVEAL_STEP; SFX.card(ch.t||'B', w); if(ch.t==='S') fxTimers.push(setTimeout(() => { impact(); sparkBurst(); }, w*1000)); });
+    slam(cur.cur.winner?'VENDU !':'RETIRÉ', cur.cur.winner?'':'no'); SFX.slam();
+    if(cur.cur.winner) SFX.win(REVEAL_START+(cs.length-1)*REVEAL_STEP+0.3);
+  }
+  if(cur.status==='bidding' && (prev.status!=='bidding' || prev.cur.idx!==cur.cur.idx)){ slam('LOT '+(cur.cur.idx+1)); SFX.slam(); }
+  if(prev.status!=='end' && cur.status==='end'){ slam('RÉSULTATS'); SFX.end(); }
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rid(n){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<n;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function save(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function drop(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function pname(p){ return room && room.players && room.players[p] ? room.players[p].name : '???'; }
+function isHost(){ return room && room.host===pid; }
+function inRoom(){ return room && room.players && room.players[pid]; }
+function tx(fn){
+  return roomRef.transaction(r => { if(!r) return r; return fn(r)===false ? undefined : r; })
+    .catch(e => { ui.err='Erreur de connexion : '+e.message; render(); });
+}
+
+/* ---------- entrer / sortir d'une salle ---------- */
+function attach(c, p){
+  code=c; pid=p; roomRef=db.ref('encheres/'+code);
+  save('ea_session',{code,pid,name:ui.name});
+  first=true;
+  roomRef.on('value', snap => {
+    const prev=room;
+    room=snap.val();
+    if(!room){ detach(); ui.err='La salle a été fermée.'; }
+    else{
+      onChange(prev, room); first=false;
+      if(room.status==='bidding' && room.cur.turn===pid && lastTurn!==room.cur.idx+':'+room.cur.bid){
+        lastTurn=room.cur.idx+':'+room.cur.bid; ui.bidInput='';
+        SFX.turn();
+        try{ navigator.vibrate && navigator.vibrate(120); }catch(e){}
+      }
+    }
+    render();
+  }, e => { ui.err='Accès refusé par Firebase : vérifie les règles de la base de données.'; detach(); render(); });
+}
+function detach(){ if(roomRef) roomRef.off(); roomRef=null; room=null; code=''; drop('ea_session'); }
+
+async function createRoom(){
+  const name=ui.name.trim().slice(0,16); if(!name){ ui.err='Écris ton nom.'; return render(); }
+  ui.busy=true; ui.err=''; render();
+  try{
+    let c='', ref=null;
+    for(let i=0;i<6;i++){ c=rid(4); ref=db.ref('encheres/'+c); const s=await ref.once('value'); if(!s.exists()) break; }
+    const p='p'+rid(8), players={}; players[p]={name, joinedAt:Date.now(), budget:100};
+    await ref.set({host:p, status:'lobby', created:Date.now(), settings:{budget:100, lotSize:3, lotCount:8, mode:'anime'}, players});
+    ui.busy=false; attach(c,p);
+  }catch(e){ ui.busy=false; ui.err='Impossible de créer la salle : '+e.message; render(); }
+}
+async function joinRoom(){
+  const name=ui.name.trim().slice(0,16), c=ui.joinCode.trim().toUpperCase();
+  if(!name){ ui.err='Écris ton nom.'; return render(); }
+  if(c.length!==4){ ui.err='Le code a 4 lettres.'; return render(); }
+  ui.busy=true; ui.err=''; render();
+  try{
+    const ref=db.ref('encheres/'+c), p='p'+rid(8);
+    const snap=await ref.once('value');
+    if(!snap.exists()){ ui.busy=false; ui.err='Salle introuvable. Vérifie le code.'; return render(); }
+    const res=await ref.transaction(r => {
+      if(!r) return r;
+      if(r.status!=='lobby' || Object.keys(r.players||{}).length>=MAX_PLAYERS) return;   // spectateur
+      if(!r.players) r.players={};
+      r.players[p]={name, joinedAt:Date.now(), budget:r.settings.budget};
+      return r;
+    });
+    ui.busy=false; attach(c,p);
+    if(!res.committed) ui.err='';
+  }catch(e){ ui.busy=false; ui.err='Impossible de rejoindre : '+e.message; render(); }
+}
+async function leaveRoom(){
+  const ref=roomRef, me=pid, host=isHost(), lobby=room && room.status==='lobby';
+  detach(); render();
+  try{
+    if(lobby && host) await ref.remove();
+    else if(lobby) await ref.transaction(r => { if(r && r.players) delete r.players[me]; return r; });
+  }catch(e){}
+}
+
+/* ---------- actions ---------- */
+function startNow(){
+  const s=room.settings, pool=buildPool(s.mode, ui.custom), need=s.lotSize*s.lotCount;
+  if(Object.keys(room.players).length<2){ ui.err='Il faut au moins 2 joueurs.'; return render(); }
+  if(pool.length<need){ ui.err='Pas assez de personnages : il en faut '+need+' ('+s.lotCount+' lots de '+s.lotSize+'), tu en as '+pool.length+'.'; return render(); }
+  ui.err='';
+  const lots=buildLots(pool, s.lotSize, s.lotCount);
+  tx(r => { if(r.status!=='lobby' || r.host!==pid) return false; startGame(r,lots); });
+}
+function setSetting(k,v){
+  tx(r => { if(r.status!=='lobby' || r.host!==pid) return false; r.settings[k]=v; if(k==='budget') for(const p in r.players) r.players[p].budget=v; });
+}
+const ACT={
+  create:createRoom, join:joinRoom, leave:leaveRoom, start:startNow,
+  set(d){ setSetting(d.k, d.k==='mode'?d.v:Number(d.v)); },
+  step(d){ const s=room.settings, lim={lotSize:[2,6], lotCount:[2,20]}[d.k]; const v=Math.max(lim[0],Math.min(lim[1],s[d.k]+Number(d.d))); if(v!==s[d.k]) setSetting(d.k,v); },
+  bid(d){ const a=Number(d.a); tx(r => doBid(r,pid,a)); },
+  bidCustom(){ const a=parseInt(ui.bidInput,10); if(!Number.isInteger(a) || a<=room.cur.bid || a>room.players[pid].budget){ ui.err='Mise invalide (entre '+(room.cur.bid+1)+' et '+room.players[pid].budget+').'; return render(); } ui.err=''; tx(r => doBid(r,pid,a)); },
+  pass(){ tx(r => doPass(r,pid)); },
+  force(){ tx(r => r.host===pid && r.cur ? doPass(r,r.cur.turn) : false); },
+  next(){ tx(r => r.host===pid ? nextLot(r) : false); },
+  vote(d){ tx(r => doVote(r,pid,d.t)); },
+  endVote(){ tx(r => { if(r.host!==pid || r.status!=='vote') return false; r.status='end'; }); },
+  replay(){ tx(r => r.host===pid ? resetRoom(r) : false); },
+  teams(){ ui.showTeams=!ui.showTeams; render(); },
+  react(d){
+    if(!EMO.includes(d.e) || !inRoom() || Date.now()-lastSent<700) return;
+    lastSent=Date.now();
+    tx(r => { r.react={p:pid, e:d.e, t:Date.now()}; });
+  },
+  mute(){ ui.mute=!ui.mute; save('ea_mute',ui.mute); if(!ui.mute){ unlockAudio(); tone(880,.1); } render(); },
+  async copy(){
+    const link=location.origin+location.pathname+'?salle='+code;
+    try{ await navigator.clipboard.writeText(link); ui.copied=true; }catch(e){ ui.copied=link; }
+    render(); setTimeout(() => { ui.copied=false; render(); }, 2500);
+  }
+};
+document.addEventListener('click', unlockAudio, true);
+document.addEventListener('click', e => {
+  const b=e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const f=ACT[b.dataset.act]; if(f) f(b.dataset);
+});
+$app.addEventListener('input', e => { const k=e.target.dataset.bind; if(k) ui[k]=e.target.value; });
+$app.addEventListener('keydown', e => {
+  if(e.key!=='Enter' || e.target.tagName!=='INPUT') return;
+  const k=e.target.dataset.bind;
+  if(k==='joinCode') joinRoom(); else if(k==='bidInput') ACT.bidCustom();
+});
+
+/* ---------- affichage ---------- */
+/* ---------- images des persos ----------
+   Dépose tes images dans un dossier "images" à côté de index.html.
+   Nom du fichier = nom du perso en minuscules, sans accents, espaces remplacés par des tirets.
+   Ex. : images/goku.jpg, images/barbe-blanche.png. Formats acceptés : jpg, png, webp, gif (les gif et webp animés bougent sur la carte).
+   Si deux persos ont le même nom dans deux animes, on ajoute l'anime : images/king-one-punch-man.jpg */
+const IMG_DIR='images/', IMG_EXT=['jpg','png','webp','gif','jpeg'], imgCache={};
+function slug(x){ return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+const DUP_NAMES=(function(){ const c={}; animePool().forEach(ch => { const k=slug(ch.n); c[k]=(c[k]||0)+1; }); return c; })();
+function imgKey(ch){ const k=slug(ch.n); return DUP_NAMES[k]>1 && ch.s ? k+'-'+slug(ch.s) : k; }
+function hue(x){ let h=0; x=String(x); for(let i=0;i<x.length;i++) h=(h*31+x.charCodeAt(i))%360; return h; }
+function initials(n){ const w=String(n).trim().split(/[\s\-]+/).filter(Boolean); return ((w[0]||'?')[0]+(w.length>1?w[1][0]:'')).toUpperCase(); }
+function avatarHTML(ch){
+  const k=imgKey(ch), h=hue(ch.s||ch.n), known=imgCache[k];
+  const img = (!k || known===false) ? '' : '<img class="pic" alt="" data-k="'+esc(k)+'" data-i="'+(known?IMG_EXT.indexOf(known):0)+'" src="'+IMG_DIR+esc(k)+'.'+(known||IMG_EXT[0])+'">';
+  return '<div class="av" style="background:linear-gradient(150deg,hsl('+h+',60%,38%),hsl('+((h+40)%360)+',55%,22%))"><span>'+esc(initials(ch.n))+'</span>'+img+'</div>';
+}
+document.addEventListener('error', e => {
+  const im=e.target; if(!im || !im.classList || !im.classList.contains('pic')) return;
+  const i=Number(im.dataset.i)+1, k=im.dataset.k;
+  if(i<IMG_EXT.length){ im.dataset.i=i; im.src=IMG_DIR+k+'.'+IMG_EXT[i]; } else { imgCache[k]=false; im.remove(); }
+}, true);
+document.addEventListener('load', e => {
+  const im=e.target; if(im && im.classList && im.classList.contains('pic')) imgCache[im.dataset.k]=IMG_EXT[Number(im.dataset.i)];
+}, true);
+/* Décoration de l'accueil : un défilé de cartes tirées au hasard parmi les rangs S et A */
+const DECO=shuffle(animePool().filter(ch => ch.t==='S' || ch.t==='A')).slice(0,12);
+function decoHTML(){
+  const row=DECO.map(ch => cardHTML(ch,'',0,false)).join('');
+  return '<div class="deco" aria-hidden="true"><div class="track">'+row+row+'</div></div>';
+}
+function tierOf(ch){ return PTS[ch.t] ? ch.t : 'B'; }
+function badge(ch){ const t=tierOf(ch); return '<span class="tier t'+t+'">'+t+'</span>'; }
+function cardHTML(ch, cls, delay, showTier){
+  return '<div class="card '+cls+(showTier?' r'+tierOf(ch):'')+'" style="animation-delay:'+delay+'s">'+(showTier?badge(ch):'')+avatarHTML(ch)+'<div class="n">'+esc(ch.n)+'</div>'+(ch.s?'<div class="s">'+esc(ch.s)+'</div>':'')+'</div>';
+}
+function lotHTML(lot, revealed){
+  const cs=arr(lot.c);
+  return '<div class="lot">'+cs.map((ch,i) => {
+    if(!revealed) return i===0 ? cardHTML(ch,'vis',0,false) : '<div class="card hid"><div class="q">?</div></div>';
+    return i===0 ? cardHTML(ch,'',0,true) : cardHTML(ch,'flip',REVEAL_START+(i-1)*REVEAL_STEP,true);
+  }).join('')+'</div>';
+}
+function verdictHTML(lot, c){
+  const n=arr(lot.c).length, sc=lotScore(lot), avg=sc/n, delay=REVEAL_START+(n-1)*REVEAL_STEP+0.3;
+  const v = avg>=6 ? ['JACKPOT 🔥','var(--gold)'] : avg>=3.5 ? ['Bon lot 👍','var(--green)'] : avg>=2.2 ? ['Bof… 😬','var(--mut)'] : ['ARNAQUE 🤡','var(--red)'];
+  return '<div class="verdict" style="animation-delay:'+delay+'s"><div class="v" style="color:'+v[1]+'">'+v[0]+'</div><div class="muted">Valeur du lot : '+sc+' pts'+(c.winner?' · payé '+c.price+'💰':'')+'</div></div>';
+}
+function rbarHTML(){
+  if(!inRoom()) return '';
+  return '<div class="rbar">'+EMO.map(e => '<button data-act="react" data-e="'+e+'">'+e+'</button>').join('')+'<button class="mute" data-act="mute">'+(ui.mute?'🔇':'🔊')+'</button></div>';
+}
+function teamHTML(p){
+  const lots=arr(room.lots), t=arr(room.players[p].team);
+  if(!t.length) return '<p class="muted">Aucun personnage.</p>';
+  return '<div class="team">'+t.map(i => arr(lots[i].c).map(ch => '<div class="t">'+badge(ch)+'<span>'+esc(ch.n)+(ch.s?' <small>· '+esc(ch.s)+'</small>':'')+'</span></div>').join('')).join('')+'</div>';
+}
+function chipsHTML(){
+  return '<div class="chips">'+arr(room.order).map(p => {
+    const pl=room.players[p], c=room.cur, bidding=room.status==='bidding';
+    const cls=(p===pid?' me':'')+(bidding&&c.turn===p?' turn':'')+(bidding&&!isActive(room,p)?' out':'');
+    return '<div class="chip'+cls+'">'+esc(pl.name)+' <b>'+pl.budget+'💰</b></div>';
+  }).join('')+'</div>';
+}
+function errHTML(){ return ui.err ? '<div class="err">'+esc(ui.err)+'</div>' : ''; }
+
+function viewSetup(){
+  return '<h1>Enchères <span>à l\'aveugle</span></h1>'+
+  '<div class="panel"><h2 style="margin-top:0">Dernière étape : Firebase</h2>'+
+  '<p>Le jeu a besoin d\'une base de données Firebase pour que chaque ami joue sur son téléphone.</p>'+
+  '<p><b style="color:var(--txt)">1.</b> Crée un projet sur console.firebase.google.com et active <b style="color:var(--txt)">Realtime Database</b>.</p>'+
+  '<p><b style="color:var(--txt)">2.</b> Dans l\'onglet <b style="color:var(--txt)">Règles</b>, colle ceci et publie :</p>'+
+  '<pre>{\n  "rules": {\n    "encheres": {\n      "$salle": { ".read": true, ".write": true }\n    }\n  }\n}</pre>'+
+  '<p><b style="color:var(--txt)">3.</b> Ajoute une application Web au projet, copie sa config et colle-la dans <b style="color:var(--txt)">firebaseConfig</b> en haut du script de ce fichier.</p></div>';
+}
+function viewHome(){
+  return '<h1>Enchères <span>à l\'aveugle</span></h1>'+decoHTML()+
+  '<p class="center">Tu vois le premier perso du lot. Le reste est caché. Tu mises ou tu passes. La meilleure équipe gagne.</p>'+errHTML()+
+  '<div class="panel"><label>Ton nom</label><input data-bind="name" maxlength="16" placeholder="Ex. Kev" value="'+esc(ui.name)+'">'+
+  '<button data-act="create"'+(ui.busy?' disabled':'')+'>Créer une salle</button></div>'+
+  '<div class="panel"><label>Code de la salle</label><input data-bind="joinCode" maxlength="4" autocapitalize="characters" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:22px;font-family:var(--disp)" value="'+esc(ui.joinCode)+'">'+
+  '<button class="sec" data-act="join"'+(ui.busy?' disabled':'')+'>Rejoindre</button></div>';
+}
+function viewLobby(){
+  const s=room.settings, host=isHost(), ps=Object.keys(room.players).sort((a,b) => room.players[a].joinedAt-room.players[b].joinedAt);
+  const need=s.lotSize*s.lotCount;
+  let h='<p class="center" style="margin-top:14px">Code de la salle</p><div class="code">'+esc(code)+'</div>'+
+  '<button class="sec" data-act="copy">'+(ui.copied===true?'Lien copié ✓':'Copier le lien d\'invitation')+'</button>'+
+  (typeof ui.copied==='string'?'<p class="muted" style="word-break:break-all">'+esc(ui.copied)+'</p>':'')+
+  '<div class="panel"><h2 style="margin-top:0">Joueurs ('+ps.length+'/'+MAX_PLAYERS+')</h2><div class="chips">'+
+  ps.map(p => '<div class="chip'+(p===pid?' me':'')+'">'+(p===room.host?'👑 ':'')+esc(room.players[p].name)+'</div>').join('')+'</div></div>';
+  if(host){
+    h+='<div class="panel"><h2 style="margin-top:0">Réglages</h2>'+
+    '<label>Budget de départ</label><div class="opt">'+[50,100,200,500].map(v => '<button data-act="set" data-k="budget" data-v="'+v+'" class="'+(s.budget===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<label>Persos par lot (1 visible, le reste caché)</label><div class="step"><button data-act="step" data-k="lotSize" data-d="-1">−</button><div class="val">'+s.lotSize+'</div><button data-act="step" data-k="lotSize" data-d="1">+</button></div>'+
+    '<label>Nombre de lots</label><div class="step"><button data-act="step" data-k="lotCount" data-d="-1">−</button><div class="val">'+s.lotCount+'</div><button data-act="step" data-k="lotCount" data-d="1">+</button></div>'+
+    '<label>Personnages</label><div class="opt">'+[['anime','Anime'],['custom','Ma liste'],['mix','Les deux']].map(m => '<button data-act="set" data-k="mode" data-v="'+m[0]+'" class="'+(s.mode===m[0]?'on':'')+'">'+m[1]+'</button>').join('')+'</div>'+
+    (s.mode!=='anime'?'<label>Ta liste : un perso par ligne, ex. « Goku - Dragon Ball - S ». Le rang (S, A, B ou C) est facultatif. Il en faut '+need+' au total.</label><textarea data-bind="custom" placeholder="Goku - Dragon Ball - S&#10;Yamcha - Dragon Ball - C">'+esc(ui.custom)+'</textarea>':'')+
+    '</div>'+errHTML()+
+    '<button data-act="start"'+(ps.length<2?' disabled':'')+'>'+(ps.length<2?'En attente d\'un 2e joueur…':'Lancer la partie')+'</button>';
+  } else {
+    h+='<div class="panel"><p>Budget : <b style="color:var(--gold)">'+s.budget+'💰</b> · '+s.lotCount+' lots de '+s.lotSize+' persos</p><p>En attente que '+esc(pname(room.host))+' lance la partie…</p></div>';
+  }
+  return h+'<button class="ghost" data-act="leave">Quitter</button>';
+}
+function myTeamHTML(){
+  if(!inRoom()) return '';
+  return '<div class="panel"><div class="rank"><h2 style="margin:0">Mon équipe</h2><span class="score">'+teamScore(room,pid)+' pts</span></div>'+teamHTML(pid)+'</div>';
+}
+function viewBidding(){
+  const c=room.cur, lots=arr(room.lots), lot=lots[c.idx], mine=c.turn===pid, me=room.players[pid];
+  let h='<div class="top"><div class="disp">Lot '+(c.idx+1)+' / '+lots.length+'</div><button class="sec sm" data-act="teams">'+(ui.showTeams?'Fermer':'Équipes')+'</button></div>'+chipsHTML();
+  if(ui.showTeams) return h+arr(room.order).map(p => '<div class="panel"><div class="rank"><b>'+esc(pname(p))+'</b><span class="score">'+teamScore(room,p)+' pts</span></div>'+teamHTML(p)+'</div>').join('')+rbarHTML();
+  h+=lotHTML(lot,false)+
+  '<div class="bid"><div class="amt">'+c.bid+'💰</div><div class="who">'+(c.bidder?'Mise de '+esc(pname(c.bidder)):'Aucune mise pour l\'instant')+'</div></div>';
+  if(mine){
+    const max=me.budget, incs=[1,5,10,25].filter(x => c.bid+x<=max);
+    h+='<div class="turnbar mine">À toi de jouer !</div>'+errHTML()+
+    '<div class="grid2">'+incs.map(x => '<button data-act="bid" data-a="'+(c.bid+x)+'">Miser '+(c.bid+x)+' <small>(+'+x+')</small></button>').join('')+'</div>'+
+    '<div class="row" style="margin-top:8px"><input data-bind="bidInput" type="number" inputmode="numeric" min="'+(c.bid+1)+'" max="'+max+'" placeholder="Autre montant (max '+max+')" value="'+esc(ui.bidInput)+'"><button class="sec" style="flex:none;width:96px;margin:0" data-act="bidCustom">Miser</button></div>'+
+    '<button class="red" data-act="pass">Je passe</button>';
+  } else {
+    h+='<div class="turnbar">Au tour de <b style="color:var(--txt)">'+esc(pname(c.turn))+'</b>…</div>'+
+    (inRoom() && !isActive(room,pid)?'<p class="center">Tu es sorti de cette enchère.</p>':'')+
+    (isHost()?'<button class="ghost" data-act="force">Faire passer '+esc(pname(c.turn))+' (s\'il ne répond plus)</button>':'');
+  }
+  if(!inRoom()) h+='<p class="center">Partie en cours — tu es spectateur.</p>';
+  return h+myTeamHTML()+rbarHTML();
+}
+function viewReveal(){
+  const c=room.cur, lots=arr(room.lots), last=c.idx+1>=lots.length;
+  return '<div class="top"><div class="disp">Lot '+(c.idx+1)+' / '+lots.length+'</div></div>'+chipsHTML()+
+  '<div class="win">'+(c.winner?'<b>'+esc(pname(c.winner))+'</b> remporte le lot pour <b>'+c.price+'💰</b>':'Personne n\'a misé : lot retiré')+'</div>'+
+  lotHTML(lots[c.idx],true)+verdictHTML(lots[c.idx],c)+
+  (isHost()?'<button data-act="next">'+(last?'Voir les résultats':'Lot suivant')+'</button>':'<div class="turnbar">En attente de '+esc(pname(room.host))+'…</div>')+
+  myTeamHTML()+rbarHTML();
+}
+function viewVote(){
+  const order=arr(room.order), votes=room.votes||{}, done=order.filter(p => votes[p]).length, voted=votes[pid];
+  return '<h2 class="center" style="font-size:26px">Vote coup de cœur</h2><p class="center">Le score décide du gagnant. Ici, tu votes pour l\'équipe que tu préfères (pas la tienne). '+done+' / '+order.length+' ont voté.</p>'+
+  order.map(p => '<div class="panel"><div class="rank"><b>'+esc(pname(p))+(p===pid?' (toi)':'')+'</b>'+
+    (inRoom() && p!==pid?'<button class="sm '+(voted===p?'':'sec')+'" data-act="vote" data-t="'+p+'">'+(voted===p?'Voté ✓':'Voter')+'</button>':'<span class="score">'+teamScore(room,p)+' pts</span>')+'</div>'+teamHTML(p)+'</div>').join('')+
+  (isHost()?'<button class="ghost" data-act="endVote">Terminer le vote maintenant</button>':'')+rbarHTML();
+}
+function viewEnd(){
+  const order=arr(room.order), votes=room.votes||{}, n={}, sc={};
+  order.forEach(p => { n[p]=0; sc[p]=teamScore(room,p); });
+  Object.values(votes).forEach(t => { if(t in n) n[t]++; });
+  const hasVotes=Object.keys(votes).length>0;
+  const sorted=order.slice().sort((a,b) => sc[b]-sc[a] || room.players[b].budget-room.players[a].budget);
+  const best=sc[sorted[0]], topV=Math.max.apply(null, order.map(p => n[p]));
+  return '<h1>Résultats</h1><p class="center">Le meilleur score gagne. S = '+PTS.S+' pts, A = '+PTS.A+', B = '+PTS.B+', C = '+PTS.C+'.</p>'+
+  sorted.map((p,i) => '<div class="panel"><div class="rank"><b>'+(sc[p]===best&&best>0?'🏆 ':(i+1)+'. ')+esc(pname(p))+(hasVotes&&n[p]===topV&&topV>0?' ❤️':'')+'</b><span class="score">'+sc[p]+' pts</span></div>'+
+    '<div class="muted">'+(hasVotes?n[p]+' vote'+(n[p]>1?'s':'')+' coup de cœur · ':'')+'reste '+room.players[p].budget+'💰</div>'+teamHTML(p)+'</div>').join('')+
+  (isHost()?'<button data-act="replay">Rejouer</button>':'<div class="turnbar">En attente de '+esc(pname(room.host))+' pour rejouer…</div>')+
+  '<button class="ghost" data-act="leave">Quitter</button>'+rbarHTML();
+}
+function render(){
+  const f=document.activeElement, fk=f && f.dataset ? f.dataset.bind : null, pos=fk ? f.selectionStart : null;
+  let h;
+  if(!configured) h=viewSetup();
+  else if(!room) h=viewHome();
+  else if(room.status==='lobby') h=viewLobby();
+  else if(room.status==='bidding') h=viewBidding();
+  else if(room.status==='reveal') h=viewReveal();
+  else if(room.status==='vote') h=viewVote();
+  else h=viewEnd();
+  const key=h.replace(/<img[^>]*>/g,'');
+  if(key===lastHTML) return;   // rien n'a changé à l'écran (ex. une réaction emoji) : on ne rejoue pas les animations
+  lastHTML=key;
+  $app.innerHTML=h;
+  if(fk){ const el=$app.querySelector('[data-bind="'+fk+'"]'); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(e){} } }
+}
+
+/* ---------- démarrage ---------- */
+(async function init(){
+  const q=new URLSearchParams(location.search).get('salle');
+  const sess=load('ea_session');
+  if(sess && sess.name) ui.name=sess.name;
+  ui.mute=load('ea_mute')===true;
+  if(q) ui.joinCode=q.toUpperCase().slice(0,4);
+  if(!configured) return render();
+  if(typeof firebase==='undefined'){ ui.err="Firebase n'a pas pu se charger. Ouvre le jeu à partir de son adresse GitHub Pages (pas dans un aperçu) et vérifie ta connexion Internet."; return render(); }
+  try{ firebase.initializeApp(firebaseConfig); db=firebase.database(); }
+  catch(e){ ui.err='Config Firebase invalide : '+e.message; return render(); }
+  render();
+  if(sess && sess.code && sess.pid && (!q || q.toUpperCase()===sess.code)){
+    try{
+      const snap=await db.ref('encheres/'+sess.code).once('value'), r=snap.val();
+      if(r && r.players && r.players[sess.pid]) attach(sess.code, sess.pid); else drop('ea_session');
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
