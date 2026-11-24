@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Enchères à l'aveugle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0e19; --panel:#161a2c; --panel2:#1f2440; --line:#2c3256;
+  --txt:#eef0ff; --mut:#8f96bd; --gold:#f6c445; --red:#ff5d73; --green:#3ddc97; --blue:#6aa6ff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Rubik,system-ui,sans-serif;font-size:16px}
+body{min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#2a2f66 0%,transparent 60%),var(--bg)}
+#app{max-width:520px;margin:0 auto;padding:16px 14px 40px}
+h1,h2,.disp{font-family:"Bebas Neue",Rubik,sans-serif;letter-spacing:1px;font-weight:400;margin:0}
+h1{font-size:44px;line-height:1;text-align:center;margin-top:18px}
+h1 span{color:var(--gold)}
+h2{font-size:24px;margin:18px 0 8px;color:var(--gold)}
+p{margin:6px 0;color:var(--mut);line-height:1.4}
+.center{text-align:center}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input,textarea{width:100%;background:#0f1222;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:13px;font:inherit;outline:none}
+input:focus,textarea:focus{border-color:var(--gold)}
+textarea{min-height:120px;resize:vertical;font-size:14px}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 16px;color:#111;background:var(--gold);cursor:pointer;width:100%;margin-top:10px}
+button:active{transform:scale(.98)}
+button.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+button.red{background:var(--red);color:#fff}
+button.ghost{background:transparent;color:var(--mut);border:1px dashed var(--line);font-weight:500}
+button.sm{width:auto;padding:8px 12px;margin:0;font-size:14px}
+button:disabled{opacity:.4}
+.err{background:#3a1420;border:1px solid var(--red);color:#ffc2cb;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.code{font-family:"Bebas Neue";font-size:64px;letter-spacing:10px;text-align:center;color:var(--gold);line-height:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:14px;display:flex;gap:6px;align-items:center}
+.chip b{color:var(--gold)}
+.chip.turn{border-color:var(--gold);box-shadow:0 0 0 2px rgba(246,196,69,.25)}
+.chip.out{opacity:.4;text-decoration:line-through}
+.chip.me{background:#27305e}
+.opt{display:flex;gap:6px;flex-wrap:wrap}
+.opt button{width:auto;flex:1;margin:0;padding:10px 6px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);font-weight:500}
+.opt button.on{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:46px;flex:none;margin:0;padding:10px 0;background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+.step .val{flex:1;text-align:center;font-family:"Bebas Neue";font-size:28px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.top .disp{font-size:22px;color:var(--mut)}
+.lot{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-top:10px}
+.card{border-radius:14px;min-height:112px;padding:10px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid var(--line);background:var(--panel2)}
+.card .av{position:relative;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:7px}
+.card .av span{font-family:"Bebas Neue";font-size:44px;color:rgba(255,255,255,.9);text-shadow:0 2px 6px rgba(0,0,0,.4)}
+.card .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.card{padding:8px}
+.card .n{font-weight:700;font-size:15px;line-height:1.15;word-break:break-word}
+.card .s{font-size:11px;color:var(--mut);margin-top:5px}
+.card.vis{background:linear-gradient(160deg,#3b3212,#1f2440);border-color:var(--gold)}
+.card.hid{background:repeating-linear-gradient(45deg,#1b1f38,#1b1f38 8px,#20254a 8px,#20254a 16px)}
+.card.hid .q{font-family:"Bebas Neue";font-size:54px;color:#4a5296}
+.card{position:relative}
+.card.flip{animation:flip .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes flip{0%{transform:rotateY(90deg) scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.tier{font-family:"Bebas Neue";font-size:20px;line-height:1;width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:#111;flex:none}
+.card .tier{position:absolute;z-index:2;top:-8px;right:-6px;animation:pop .4s both;animation-delay:inherit;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+@keyframes pop{0%{transform:scale(0) rotate(-30deg)}70%{transform:scale(1.3)}100%{transform:none}}
+.tS{background:var(--gold)} .tA{background:#c78bff} .tB{background:var(--blue)} .tC{background:#8a90a8}
+.card.rS{border-color:var(--gold);background:linear-gradient(160deg,#4a3d10,#1f2440);box-shadow:0 0 18px rgba(246,196,69,.55)}
+.card.rA{border-color:#c78bff;background:linear-gradient(160deg,#35224f,#1f2440)}
+.card.rB{border-color:var(--blue)}
+.card.rC{border-color:#5c6282;opacity:.85}
+.card.flip.rS{animation:flip .6s cubic-bezier(.2,1.4,.4,1) both, glow 1.2s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:0 0 10px rgba(246,196,69,.4)}to{box-shadow:0 0 26px rgba(246,196,69,.9)}}
+.verdict{text-align:center;margin-top:12px;animation:fadeUp .5s both}
+.verdict .v{font-family:"Bebas Neue";font-size:26px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.team .t{display:flex;align-items:center;gap:8px}
+.team .tier{width:24px;height:24px;font-size:16px;border-radius:7px}
+.score{font-family:"Bebas Neue";font-size:24px;color:var(--gold)}
+#app{padding-bottom:96px}
+.rbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(12,14,25,.92);border-top:1px solid var(--line);backdrop-filter:blur(8px);z-index:5}
+.rbar button{width:auto;flex:1;max-width:60px;margin:0;padding:8px 0;font-size:24px;background:var(--panel2);border:1px solid var(--line)}
+.rbar button.mute{font-size:18px;color:var(--mut)}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9}
+.float{position:absolute;bottom:70px;text-align:center;animation:rise 2.4s ease-out forwards}
+.float .e{font-size:46px;line-height:1}
+.float .w{font-size:12px;color:#fff;background:rgba(0,0,0,.55);border-radius:8px;padding:1px 7px;margin-top:2px;display:inline-block}
+@keyframes rise{0%{transform:translateY(0) scale(.4);opacity:0}15%{transform:translateY(-40px) scale(1.15);opacity:1}100%{transform:translateY(-62vh) scale(1);opacity:0}}
+.spark{position:absolute;font-size:26px;animation:spark 1.1s ease-out forwards}
+@keyframes spark{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.2) rotate(180deg);opacity:0}}
+.bid{text-align:center;margin-top:14px}
+.bid .amt{font-family:"Bebas Neue";font-size:72px;line-height:1;color:var(--gold)}
+.bid .who{color:var(--mut);font-size:14px}
+.turnbar{margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--panel2);color:var(--mut)}
+.turnbar.mine{background:var(--gold);color:#111;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.grid2 button{margin:0}
+.team{margin-top:8px}
+.team .t{font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.team .t small{color:var(--mut)}
+.win{font-family:"Bebas Neue";font-size:30px;text-align:center;margin-top:14px;line-height:1.1}
+.win b{color:var(--gold);font-weight:400}
+.rank{display:flex;justify-content:space-between;align-items:center}
+.muted{color:var(--mut);font-size:13px}
+pre{background:#0f1222;border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;font-size:12px;color:#cfd4ff}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* =====================================================================
+   1) CONFIG FIREBASE — colle ici la config de ton projet Firebase
+   (Console Firebase > Paramètres du projet > Tes applications > Config)
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyByNMyrY_mG7y_wxh5n26YO8xpF6D7H3Wk",
+  authDomain: "encheres-aveugle.firebaseapp.com",
+  databaseURL: "https://encheres-aveugle-default-rtdb.firebaseio.com",
+  projectId: "encheres-aveugle",
+  storageBucket: "encheres-aveugle.firebasestorage.app",
+  messagingSenderId: "640490096889",
+  appId: "1:640490096889:web:e7995a75d223cc6fb67a28"
+};
+
+/* =====================================================================
+   2) PERSONNAGES — classés par rang (S = le meilleur, C = le pire).
+   Tu peux en ajouter, en enlever ou changer leur rang ici.
+   ===================================================================== */
+const ANIME = {
+  "Dragon Ball":{S:["Goku","Vegeta","Beerus","Jiren","Broly","Whis"],A:["Gohan","Freezer","Cell","Majin Buu","Trunks","Goku Black","Hit","Gotenks"],B:["Piccolo","Krilin","C-17","C-18","Tortue Géniale","Ten Shin Han"],C:["Yamcha","Mr. Satan","Chaozu","Yajirobé"]},
+  "Naruto":{S:["Naruto","Sasuke","Madara","Itachi","Hashirama"],A:["Kakashi","Minato","Pain","Jiraya","Obito","Might Guy","Tsunade","Kisame","Killer Bee"],B:["Gaara","Rock Lee","Orochimaru","Shikamaru","Hinata","Neji","Deidara"],C:["Sakura","Tenten","Kiba","Ino","Choji"]},
+  "One Piece":{S:["Luffy","Shanks","Barbe Blanche","Kaido","Big Mom","Akainu","Roger","Garp"],A:["Zoro","Mihawk","Barbe Noire","Law","Ace","Doflamingo","Sanji","Jinbe","Sabo","Aokiji","Kizaru","Crocodile","Katakuri","Kid"],B:["Boa Hancock","Nami","Chopper","Robin","Franky","Brook"],C:["Usopp","Baggy"]},
+  "Bleach":{S:["Ichigo","Aizen","Yamamoto","Yhwach"],A:["Kenpachi","Byakuya","Urahara","Ulquiorra","Hitsugaya","Yoruichi","Unohana","Kyoraku","Gin","Starrk","Barragan","Harribel","Mayuri"],B:["Grimmjow","Rukia","Renji","Soi Fon","Ukitake","Tosen","Ishida","Nnoitra"],C:["Kon","Orihime","Chad"]},
+  "Hunter x Hunter":{S:["Meruem","Netero","Neferupito","Ging"],A:["Gon","Kirua","Hisoka","Kuroro","Kurapika","Feitan","Zeno Zoldyck","Silva Zoldyck","Irumi","Biscuit","Kaito","Shaiapouf","Menthuthuyoupi","Morel","Uvogin"],B:["Leolio","Knuckle","Machi","Nobunaga"],C:["Wing","Zushi","Tonpa"]},
+  "My Hero Academia":{S:["All Might","All For One","Star and Stripe"],A:["Deku","Bakugo","Todoroki","Endeavor","Shigaraki","Hawks","Mirio","Dabi","Overhaul","Mirko"],B:["Aizawa","Tamaki","Nejire","Kirishima","Uraraka","Iida","Tsuyu","Momo Yaoyorozu","Tokoyami","Toga","Stain","Best Jeanist"],C:["Mineta","Kaminari"]},
+  "Jujutsu Kaisen":{S:["Gojo","Sukuna","Kenjaku"],A:["Yuta","Toji","Geto","Yuji","Maki","Todo","Choso","Mahito","Jogo","Hakari","Kashimo","Higuruma","Yuki Tsukumo"],B:["Megumi","Nanami","Nobara","Inumaki","Hanami","Dagon","Mei Mei","Naobito","Mechamaru","Uraume"],C:["Panda","Miwa"]},
+  "Demon Slayer":{S:["Muzan","Kokushibo","Gyomei","Doma","Yoriichi"],A:["Tanjiro","Rengoku","Giyu","Akaza","Tengen","Shinobu","Mitsuri","Obanai","Sanemi","Muichiro","Gyutaro","Hantengu"],B:["Nezuko","Inosuke","Zenitsu","Daki","Rui","Enmu","Kanao","Genya","Gyokko","Kaigaku","Urokodaki"]},
+  "L'Attaque des Titans":{S:["Livaï","Eren"],A:["Mikasa","Erwin","Reiner","Hansi","Bertolt","Sieg","Kenny"],B:["Armin","Annie","Jean","Historia","Ymir","Peak","Porco","Falco"],C:["Sasha","Conny","Gaby","Hannes","Floch","Marco"]},
+  "One Punch Man":{S:["Saitama","Blast","Orochi"],A:["Garou","Boros","Tatsumaki","Bang","Atomic Samurai","Metal Bat","Flashy Flash","Watchdog Man","Sweet Mask","Metal Knight"],B:["Genos","Fubuki","Speed-o'-Sound Sonic","Puri-Puri Prisoner","Pig God","Zombieman","Child Emperor","Carnage Kabuto","Deep Sea King","Tank Top Master"],C:["King","Mumen Rider"]},
+  "Fullmetal Alchemist":{S:["Father","Hohenheim"],A:["Edward Elric","Roy Mustang","King Bradley","Envy","Lust","Greed","Pride","Alex Louis Armstrong","Olivier Armstrong","Izumi Curtis","Kimblee"],B:["Alphonse","Scar","Riza Hawkeye","Gluttony","Sloth","Ling Yao","Lan Fan"],C:["Winry","Maes Hughes","May Chang"]},
+  "Death Note":{A:["Light Yagami","L","Near"],B:["Ryuk","Mello","Soichiro Yagami","Rem","Teru Mikami","Naomi Misora"],C:["Misa","Watari","Matsuda","Kiyomi Takada","Raye Penber","Aizawa","Mogi","Matt","Sayu Yagami","Higuchi"]},
+  "JoJo's Bizarre Adventure":{S:["Jotaro","Dio","Kars","Kira Yoshikage","Diavolo","Pucci","Funny Valentine"],A:["Giorno","Joseph Joestar","Josuke","Jonathan Joestar","Jolyne","Johnny Joestar","Gyro Zeppeli","Bruno Bucciarati"],B:["Kakyoin","Polnareff","Avdol","Iggy","Caesar Zeppeli","Okuyasu","Rohan Kishibe","Mista"],C:["Speedwagon"]},
+  "Chainsaw Man":{S:["Makima","Pochita","Darkness Devil"],A:["Denji","Kishibe","Reze","Quanxi","Yoru","Santa Claus"],B:["Power","Aki","Himeno","Angel Devil","Beam","Katana Man","Asa Mitaka","Yoshida","Nayuta","Violence"],C:["Kobeni"]},
+  "Solo Leveling":{S:["Sung Jinwoo","Beru","Thomas Andre","Liu Zhigang","Sung Il-Hwan","Antares","Ashborn","Bellion"],A:["Igris","Go Gunhee","Choi Jong-In","Baek Yoonho","Goto Ryuji","Tusk","Hwang Dongsoo"],B:["Cha Hae-In","Woo Jinchul","Min Byung-Gyu","Iron","Kaisel","Kang Taeshik"],C:["Yoo Jinho","Sung Jinah"]},
+  "Black Clover":{S:["Julius Novachrono","Mereoleona","Licht","Zenon","Dante","Lucifero"],A:["Asta","Yuno","Yami","Fuegoleon","Nozel","Nacht","William Vangeance","Jack the Ripper","Charlotte"],B:["Noelle","Luck","Magna","Vanessa","Charmy","Gauche","Zora","Langris","Secre"],C:["Finral","Mimosa"]},
+  "Fairy Tail":{S:["Gildarts","Zeleph","Acnologia","August","Irene"],A:["Natsu","Erza","Gajeel","Luxus","Mirajane","Makarof","Jellal","Sting","Mavis"],B:["Grey","Wendy","Rogue","Juvia","Elfman","Cana"],C:["Lucy","Happy","Carla","Lisanna"]},
+  "Seven Deadly Sins":{S:["Meliodas","Escanor","Merlin","Zeldris","Estarossa","Roi Démon","Mael","Chandler","Cusack"],A:["Ban","King","Galand","Monspeet","Derieri","Fraudrin","Gloxinia","Drole"],B:["Diane","Gowther","Arthur","Gilthunder","Hendrickson","Dreyfus"],C:["Elizabeth","Hawk","Elaine"]},
+  "Tokyo Ghoul":{S:["Arima","Eto","Yoshimura"],A:["Kaneki","Juzo Suzuya","Amon","Tatara","Yomo","Jason","Furuta","Takizawa","Rize"],B:["Touka","Ayato","Tsukiyama","Hinami","Nishiki","Uta","Mado","Akira Mado","Urie","Mutsuki"],C:["Hide"]},
+  "Mob Psycho 100":{S:["Mob","Toichiro Suzuki","Serizawa","Mogami"],A:["Ritsu","Teru","Sho Suzuki","Shimazaki","Minegishi","Shibata","Hatori"],B:["Ekubo","Koyama","Sakurai","Matsuo"],C:["Reigen","Tome","Musashi Goda","Tenga Onigawara","Tsubomi","Mezato"]},
+  "Code Geass":{S:["Lelouch","Charles zi Britannia"],A:["Suzaku","C.C.","Kallen","Schneizel","Xingke","Bismarck"],B:["Cornelia","Jeremiah","Rolo","Tohdoh","Gino","Anya Alstreim","Mao","V.V."],C:["Nunnally","Shirley","Euphemia","Lloyd","Ohgi","Villetta","Diethard","Milly"]},
+  "Sword Art Online":{S:["Heathcliff","Yuuki","Administrator","Gabriel Miller"],A:["Kirito","Alice","Eugeo","Bercouli","PoH"],B:["Asuna","Sinon","Leafa","Death Gun","Eiji","Fanatio"],C:["Klein","Agil","Silica","Lisbeth","Yui","Oberon","Kibaou","Sachi"]},
+  "Haikyu!!":{A:["Kageyama","Ushijima","Oikawa","Nishinoya","Kuroo","Bokuto","Atsumu Miya","Sakusa","Hoshiumi"],B:["Shoyo Hinata","Tsukishima","Tanaka","Daichi","Asahi","Iwaizumi","Kenma","Akaashi","Tendo","Aone"],C:["Yamaguchi","Sugawara","Lev"]},
+  "Blue Lock":{A:["Isagi","Rin Itoshi","Sae Itoshi","Barou","Kaiser","Noel Noa","Shidou"],B:["Nagi","Bachira","Chigiri","Kunigami","Reo","Aiku","Karasu","Otoya","Yukimiya","Gagamaru","Hiori","Kurona","Ness","Lorenzo"],C:["Igaguri","Raichi","Ego Jinpachi","Zantetsu","Niko","Aryu","Tokimitsu"]},
+  "Spy x Family":{A:["Yor","Loid"],B:["Yuri Briar","Fiona Frost","Sylvia Sherwood","Donovan Desmond","Matthew McMahon"],C:["Anya","Franky","Damian Desmond","Becky Blackbell","Bond","Henry Henderson","Camilla","Millie","Sharon","Dominic","Ewen","Emile","Melinda Desmond","Demetrius Desmond"]},
+  "Frieren":{S:["Frieren","Flamme","Serie","Macht","Solitär"],A:["Himmel","Eisen","Aura","Denken","Kraft","Qual","Lernen"],B:["Fern","Stark","Heiter","Lügner","Linie","Übel","Land","Wirbel","Sein","Genau","Sense","Methode","Richter"],C:["Draht","Laufen","Kanne","Lawine","Edel"]},
+  "Dandadan":{S:["Evil Eye","Comte de Saint-Germain","Reiko Kashima"],A:["Mémé Turbo","Seiko Ayase","Jiji","Acrobatic Silky","Unji Zuma","Mongolian Death Worm"],B:["Okarun","Momo","Aira","Vamola","Serpo","Flatwoods Monster","Mr. Mantis Shrimp","Manjiro","Nessie"],C:["Kinta","Rin Sawaki","Muko","Kouki Yukishiro","Taro"]},
+  "Vinland Saga":{S:["Thors","Thorkell"],A:["Thorfinn","Askeladd","Canute","Bjorn","Thorgil","Snake","Garm"],B:["Floki","Hild","Sigurd","Sweyn","Halfdan","Vagn"],C:["Leif Erikson","Einar","Arnheid","Ketil","Olmar","Gudrid","Ylva","Helga","Ragnar","Willibald"]},
+  "Berserk":{S:["Guts","Griffith","Zodd","Skull Knight","Void","Slan","Ubik","Conrad","Ganishka"],A:["Serpico","Schierke","Mozgus","Grunbeld","Locus","Irvine","Wyald"],B:["Casca","Judeau","Pippin","Rosine","Le Comte","Azan"],C:["Corkus","Rickert","Puck","Farnese","Isidro","Bazuso"]},
+  "Cowboy Bebop":{A:["Spike","Vicious","Vincent Volaju","Pierrot le Fou"],B:["Jet Black","Faye Valentine","Ed","Gren","Electra","Lin","Asimov Solensan"],C:["Ein","Julia","Andy","Shin","Punch","Judy","Rocco Bonnaro","Laughing Bull","Annie"]},
+  "Gintama":{S:["Kamui","Umibozu","Hosen","Utsuro"],A:["Gintoki","Kagura","Hijikata","Okita","Katsura","Takasugi","Nobume","Oboro"],B:["Sadaharu","Kondo","Sakamoto","Otae","Sachan","Tsukuyo","Kyubei","Tama","Isaburo Sasaki","Zenzo Hattori"],C:["Shinpachi","Elizabeth","Hasegawa","Yamazaki","Otose","Catherine"]},
+  "Re:Zero":{S:["Puck","Roswaal","Reinhard","Echidna","Satella","Regulus","Reid Astrea","Cecilus"],A:["Beatrice","Garfiel","Wilhelm","Priscilla","Julius","Elsa","Petelgeuse"],B:["Rem","Emilia","Ram","Crusch","Felix","Frederica","Al","Meili"],C:["Subaru","Felt","Otto","Anastasia","Petra"]},
+  "Konosuba":{S:["Vanir","Eris"],A:["Wiz","Chris","Verdia","Hans","Sylvia","Wolbach","Iris"],B:["Megumin","Darkness","Yunyun","Mitsurugi","Zesta"],C:["Kazuma","Aqua","Luna","Dust","Claire","Sena","Komekko","Chomusuke","Alderp","Rin","Hyoizaburo","Yuiyui","Cecily"]},
+  "Dr. Stone":{A:["Senku","Tsukasa","Kohaku","Hyoga","Stanley Snyder","Moz","Matsukaze"],B:["Chrome","Kinro","Kaseki","Ryusui","Ukyo","Homura","Magma","Dr. Xeno","Ibara","Kirisame","Nikki"],C:["Taiju","Yuzuriha","Gen Asagiri","Ginro","Suika","Ruri","François","Byakuya Ishigami","Yo"]},
+  "Fire Force":{S:["Benimaru Shinmon","Sho Kusakabe","Dragon"],A:["Shinra","Arthur Boyle","Joker","Leonard Burns","Haumea","Charon","Ogun Montgomery","Kurono"],B:["Maki Oze","Akitaru Obi","Takehisa Hinawa","Princess Hibana","Karim","Vulcan","Arrow","Konro","Juggernaut","Nataku","Inca","Rekka"],C:["Iris","Tamaki Kotatsu","Viktor Licht","Lisa","Pan Ko Paat"]},
+  "Tokyo Revengers":{A:["Mikey","Izana","South Terano","Draken","Taiju Shiba"],B:["Baji","Hanma","Kakucho","Senju","Wakasa","Benkei","Angry","Chifuyu","Mitsuya","Kazutora","Sanzu","Inui","Smiley","Hakkai","Ran Haitani","Rindo Haitani","Pah-chin","Peh-yan"],C:["Takemichi","Kisaki","Kokonoi","Hinata Tachibana","Naoto","Emma","Shinichiro Sano","Akkun"]},
+  "Yu-Gi-Oh!":{S:["Exodia"],A:["Atem","Dragon Blanc aux Yeux Bleus"],B:["Yugi","Kaiba","Joey Wheeler","Bakura","Marik","Pegasus","Dartz","Magicien des Ténèbres"],C:["Téa","Tristan","Mai Valentine","Mokuba","Grand-père Muto","Duke Devlin","Serenity","Ishizu","Odion","Weevil Underwood","Rex Raptor","Mako Tsunami","Bandit Keith","Noah Kaiba","Rebecca","Kuriboh"]},
+  "Saint Seiya":{S:["Saga","Shaka","Dohko","Kanon","Poséidon","Hadès"],A:["Seiya","Shiryu","Hyoga","Shun","Ikki","Aiolia","Mû","Milo","Aioros","Shura","Camus","Rhadamanthe"],B:["Athéna","Aldébaran","Masque de Mort","Aphrodite","Hilda de Polaris"],C:["Marine","Shaina","Jabu","Kiki"]},
+  "Ken le Survivant":{S:["Kenshiro","Raoh","Toki","Souther","Kaioh"],A:["Shin","Rei","Shu","Juda","Fudo","Juza","Ryuga","Hyoh","Falco","Ryuken"],B:["Jagi","Shachi","Ein","Heart","Uighur"],C:["Yuria","Bat","Lin","Mamiya","Airi","Amiba","Jackal"]},
+  "Evangelion":{S:["Eva-01","Zeruel","Lilith","Adam"],A:["Kaworu","Eva-02","Ramiel"],B:["Shinji","Rei","Asuka","Misato","Gendo","Mari","Eva-00","Sachiel"],C:["Ritsuko","Kaji","Fuyutsuki","Toji Suzuhara","Kensuke","Hikari","Yui Ikari","Pen Pen","Maya Ibuki","Hyuga","Aoba","Keel Lorenz"]}
+};
+/* Points par rang : change-les ici si tu veux */
+const PTS = {S:10, A:6, B:3, C:1};
+
+//<LOGIC>
+/* =====================================================================
+   3) RÈGLES DU JEU (fonctions pures, sans Firebase)
+   ===================================================================== */
+const MAX_PLAYERS = 8;
+function arr(v){ return !v ? [] : (Array.isArray(v) ? v.filter(x => x != null) : Object.values(v)); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function animePool(){ const out=[]; for(const s in ANIME) for(const t in ANIME[s]) ANIME[s][t].forEach(n => out.push({n, s, t})); return out; }
+function pts(ch){ return PTS[ch && ch.t] || PTS.B; }
+function lotScore(lot){ return arr(lot && lot.c).reduce((a,ch) => a+pts(ch), 0); }
+function teamScore(room,p){ const lots=arr(room.lots); return arr(room.players[p] && room.players[p].team).reduce((a,i) => a+lotScore(lots[i]), 0); }
+function parseCustom(text){
+  const seen={}, out=[];
+  String(text||'').split(/\r?\n/).forEach(line => {
+    line=line.trim(); if(!line) return;
+    const parts=line.split(/\s+[-|–]\s+/).map(x => x.trim()).filter(Boolean);
+    let t='B';
+    if(parts.length>1 && /^[SABC]$/i.test(parts[parts.length-1])) t=parts.pop().toUpperCase();
+    const n=(parts[0]||'').slice(0,40), s=parts.slice(1).join(' - ').slice(0,40);
+    const k=(n+'|'+s).toLowerCase(); if(!n||seen[k]) return; seen[k]=1; out.push({n,s,t});
+  });
+  return out;
+}
+function buildPool(mode, customText){
+  if(mode==='custom') return parseCustom(customText);
+  if(mode==='mix') return animePool().concat(parseCustom(customText));
+  return animePool();
+}
+function buildLots(pool, size, count){
+  const p=shuffle(pool.slice()), lots=[];
+  for(let i=0;i<count;i++) lots.push({c:p.slice(i*size,(i+1)*size)});
+  return lots;
+}
+function isActive(room,p){ return !!(room.cur && room.cur.active && room.cur.active[p]); }
+
+function startGame(room, lots){
+  const s=room.settings;
+  room.order=shuffle(Object.keys(room.players||{}));
+  room.order.forEach(p => { room.players[p].budget=s.budget; room.players[p].team=null; });
+  room.lots=lots; room.votes=null;
+  beginLot(room,0);
+}
+function beginLot(room, idx){
+  const order=arr(room.order), active={};
+  order.forEach(p => { if((room.players[p].budget||0)>=1) active[p]=true; });
+  room.cur={idx, bid:0, bidder:'', active, turn:'', winner:'', price:0};
+  room.status='bidding';
+  const start=idx%order.length;
+  for(let i=0;i<order.length;i++){ const p=order[(start+i)%order.length]; if(active[p]){ room.cur.turn=p; return; } }
+  closeLot(room,'');
+}
+function closeLot(room, winner){
+  const c=room.cur;
+  c.turn=''; c.winner=winner||''; c.price=winner?c.bid:0;
+  if(winner){ const pl=room.players[winner]; pl.budget-=c.bid; pl.team=arr(pl.team).concat([c.idx]); }
+  room.status='reveal';
+}
+function advance(room, from){
+  const c=room.cur, order=arr(room.order);
+  if(!c.active) c.active={};
+  // ceux qui n'ont plus assez d'argent pour surenchérir sont sortis automatiquement
+  order.forEach(p => { if(c.active[p] && p!==c.bidder && (room.players[p].budget||0) < c.bid+1) delete c.active[p]; });
+  const act=order.filter(p => c.active[p]);
+  if(act.length===0) return closeLot(room,'');
+  if(c.bidder && act.length===1 && act[0]===c.bidder) return closeLot(room,c.bidder);
+  const i=order.indexOf(from);
+  for(let k=1;k<=order.length;k++){ const p=order[(i+k)%order.length]; if(c.active[p] && p!==c.bidder){ c.turn=p; return; } }
+  closeLot(room,c.bidder||'');
+}
+function doBid(room, pid, amount){
+  const c=room.cur;
+  if(room.status!=='bidding' || !c || c.turn!==pid) return false;
+  if(!Number.isInteger(amount) || amount<=c.bid || amount>(room.players[pid].budget||0)) return false;
+  c.bid=amount; c.bidder=pid; advance(room,pid); return true;
+}
+function doPass(room, pid){
+  const c=room.cur;
+  if(room.status!=='bidding' || !c || c.turn!==pid) return false;
+  if(c.active) delete c.active[pid];
+  advance(room,pid); return true;
+}
+function nextLot(room){
+  if(room.status!=='reveal') return false;
+  const n=arr(room.lots).length, idx=room.cur.idx+1;
+  if(idx<n) beginLot(room,idx);
+  else { room.votes=null; room.status = arr(room.order).length>=3 ? 'vote' : 'end'; }
+  return true;
+}
+function doVote(room, pid, target){
+  const order=arr(room.order);
+  if(room.status!=='vote' || pid===target || !order.includes(pid) || !order.includes(target)) return false;
+  if(!room.votes) room.votes={};
+  room.votes[pid]=target;
+  if(order.every(p => room.votes[p])) room.status='end';
+  return true;
+}
+function resetRoom(room){
+  room.status='lobby'; room.lots=null; room.cur=null; room.votes=null; room.order=null;
+  for(const p in room.players){ room.players[p].team=null; room.players[p].budget=room.settings.budget; }
+  return true;
+}
+//</LOGIC>
+
+/* =====================================================================
+   4) APPLICATION (Firebase + affichage)
+   ===================================================================== */
+const $app=document.getElementById('app');
+const configured = !!firebaseConfig.databaseURL && !/COLLE_ICI/.test(firebaseConfig.apiKey+firebaseConfig.databaseURL);
+let db=null, roomRef=null, room=null, code='', pid='', lastTurn='';
+const ui={name:'', joinCode:'', custom:'', bidInput:'', err:'', busy:false, copied:false, showTeams:false, mute:false};
+let lastHTML=null, lastReact=0, lastSent=0, first=true, fxTimers=[];
+const EMO=['😂','😱','🔥','💀','🤡','👏'];
+const $fx=document.getElementById('fx');
+
+/* ---------- sons (fabriqués par le navigateur, aucun fichier) ---------- */
+let actx=null;
+function unlockAudio(){
+  try{ if(!actx){ const A=window.AudioContext||window.webkitAudioContext; if(A) actx=new A(); } if(actx && actx.state==='suspended') actx.resume(); }catch(e){}
+}
+function tone(f, d, type, when, vol){
+  if(ui.mute || !actx) return;
+  try{
+    const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime+(when||0);
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(vol||0.14,t); g.gain.exponentialRampToValueAtTime(0.001,t+d);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.02);
+  }catch(e){}
+}
+const SFX={
+  bid(){ tone(660,.12,'triangle'); tone(990,.16,'triangle',.08); },
+  pass(){ tone(240,.22,'sawtooth',0,.07); tone(170,.3,'sawtooth',.12,.07); },
+  turn(){ tone(880,.1); tone(1175,.22,'sine',.12); },
+  card(t, when){
+    if(t==='S'){ [784,988,1175,1568].forEach((f,i) => tone(f,.35,'triangle',when+i*.09,.16)); }
+    else if(t==='A'){ tone(660,.18,'triangle',when); tone(880,.28,'triangle',when+.1); }
+    else if(t==='C'){ tone(196,.3,'sawtooth',when,.08); tone(147,.45,'sawtooth',when+.15,.08); }
+    else tone(520,.2,'triangle',when);
+  },
+  win(when){ [523,659,784,1047].forEach((f,i) => tone(f,.3,'square',when+i*.12,.07)); },
+  end(){ [523,659,784,1047,784,1047,1319].forEach((f,i) => tone(f,.35,'triangle',i*.14,.14)); }
+};
+/* ---------- effets à l'écran ---------- */
+function floatEmoji(e, who){
+  if(!EMO.includes(e)) return;
+  const d=document.createElement('div'); d.className='float'; d.style.left=(8+Math.random()*70)+'%';
+  const a=document.createElement('div'); a.className='e'; a.textContent=e;
+  const b=document.createElement('div'); b.className='w'; b.textContent=who;
+  d.appendChild(a); d.appendChild(b); $fx.appendChild(d); setTimeout(() => d.remove(), 2500);
+}
+function sparkBurst(){
+  for(let i=0;i<14;i++){
+    const d=document.createElement('div'); d.className='spark'; d.textContent=i%2?'✨':'⭐';
+    const an=Math.PI*2*i/14, r=90+Math.random()*90;
+    d.style.left='48%'; d.style.top='42%'; d.style.setProperty('--dx',Math.cos(an)*r+'px'); d.style.setProperty('--dy',Math.sin(an)*r+'px');
+    $fx.appendChild(d); setTimeout(() => d.remove(), 1200);
+  }
+}
+const REVEAL_STEP=0.7;   // secondes entre chaque carte révélée
+function onChange(prev, cur){
+  // réactions emoji
+  const rc=cur.react;
+  if(rc && rc.t && rc.t!==lastReact){ const show=!first && Date.now()-rc.t<8000; lastReact=rc.t; if(show) floatEmoji(rc.e, pname(rc.p)); }
+  if(!prev) return;
+  if(prev.status==='bidding' && cur.status==='bidding' && prev.cur.idx===cur.cur.idx){
+    if(cur.cur.bid>prev.cur.bid) SFX.bid(); else if(prev.cur.turn!==cur.cur.turn) SFX.pass();
+  }
+  if(prev.status==='bidding' && cur.status==='reveal'){
+    fxTimers.forEach(clearTimeout); fxTimers=[];
+    const cs=arr(arr(cur.lots)[cur.cur.idx].c);
+    cs.forEach((ch,i) => { if(i===0) return; const w=0.4+(i-1)*REVEAL_STEP; SFX.card(ch.t||'B', w); if(ch.t==='S') fxTimers.push(setTimeout(sparkBurst, w*1000)); });
+    if(cur.cur.winner) SFX.win(0.4+(cs.length-1)*REVEAL_STEP+0.3);
+  }
+  if(prev.status!=='end' && cur.status==='end') SFX.end();
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rid(n){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<n;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function save(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function drop(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function pname(p){ return room && room.players && room.players[p] ? room.players[p].name : '???'; }
+function isHost(){ return room && room.host===pid; }
+function inRoom(){ return room && room.players && room.players[pid]; }
+function tx(fn){
+  return roomRef.transaction(r => { if(!r) return r; return fn(r)===false ? undefined : r; })
+    .catch(e => { ui.err='Erreur de connexion : '+e.message; render(); });
+}
+
+/* ---------- entrer / sortir d'une salle ---------- */
+function attach(c, p){
+  code=c; pid=p; roomRef=db.ref('encheres/'+code);
+  save('ea_session',{code,pid,name:ui.name});
+  first=true;
+  roomRef.on('value', snap => {
+    const prev=room;
+    room=snap.val();
+    if(!room){ detach(); ui.err='La salle a été fermée.'; }
+    else{
+      onChange(prev, room); first=false;
+      if(room.status==='bidding' && room.cur.turn===pid && lastTurn!==room.cur.idx+':'+room.cur.bid){
+        lastTurn=room.cur.idx+':'+room.cur.bid; ui.bidInput='';
+        SFX.turn();
+        try{ navigator.vibrate && navigator.vibrate(120); }catch(e){}
+      }
+    }
+    render();
+  }, e => { ui.err='Accès refusé par Firebase : vérifie les règles de la base de données.'; detach(); render(); });
+}
+function detach(){ if(roomRef) roomRef.off(); roomRef=null; room=null; code=''; drop('ea_session'); }
+
+async function createRoom(){
+  const name=ui.name.trim().slice(0,16); if(!name){ ui.err='Écris ton nom.'; return render(); }
+  ui.busy=true; ui.err=''; render();
+  try{
+    let c='', ref=null;
+    for(let i=0;i<6;i++){ c=rid(4); ref=db.ref('encheres/'+c); const s=await ref.once('value'); if(!s.exists()) break; }
+    const p='p'+rid(8), players={}; players[p]={name, joinedAt:Date.now(), budget:100};
+    await ref.set({host:p, status:'lobby', created:Date.now(), settings:{budget:100, lotSize:3, lotCount:8, mode:'anime'}, players});
+    ui.busy=false; attach(c,p);
+  }catch(e){ ui.busy=false; ui.err='Impossible de créer la salle : '+e.message; render(); }
+}
+async function joinRoom(){
+  const name=ui.name.trim().slice(0,16), c=ui.joinCode.trim().toUpperCase();
+  if(!name){ ui.err='Écris ton nom.'; return render(); }
+  if(c.length!==4){ ui.err='Le code a 4 lettres.'; return render(); }
+  ui.busy=true; ui.err=''; render();
+  try{
+    const ref=db.ref('encheres/'+c), p='p'+rid(8);
+    const snap=await ref.once('value');
+    if(!snap.exists()){ ui.busy=false; ui.err='Salle introuvable. Vérifie le code.'; return render(); }
+    const res=await ref.transaction(r => {
+      if(!r) return r;
+      if(r.status!=='lobby' || Object.keys(r.players||{}).length>=MAX_PLAYERS) return;   // spectateur
+      if(!r.players) r.players={};
+      r.players[p]={name, joinedAt:Date.now(), budget:r.settings.budget};
+      return r;
+    });
+    ui.busy=false; attach(c,p);
+    if(!res.committed) ui.err='';
+  }catch(e){ ui.busy=false; ui.err='Impossible de rejoindre : '+e.message; render(); }
+}
+async function leaveRoom(){
+  const ref=roomRef, me=pid, host=isHost(), lobby=room && room.status==='lobby';
+  detach(); render();
+  try{
+    if(lobby && host) await ref.remove();
+    else if(lobby) await ref.transaction(r => { if(r && r.players) delete r.players[me]; return r; });
+  }catch(e){}
+}
+
+/* ---------- actions ---------- */
+function startNow(){
+  const s=room.settings, pool=buildPool(s.mode, ui.custom), need=s.lotSize*s.lotCount;
+  if(Object.keys(room.players).length<2){ ui.err='Il faut au moins 2 joueurs.'; return render(); }
+  if(pool.length<need){ ui.err='Pas assez de personnages : il en faut '+need+' ('+s.lotCount+' lots de '+s.lotSize+'), tu en as '+pool.length+'.'; return render(); }
+  ui.err='';
+  const lots=buildLots(pool, s.lotSize, s.lotCount);
+  tx(r => { if(r.status!=='lobby' || r.host!==pid) return false; startGame(r,lots); });
+}
+function setSetting(k,v){
+  tx(r => { if(r.status!=='lobby' || r.host!==pid) return false; r.settings[k]=v; if(k==='budget') for(const p in r.players) r.players[p].budget=v; });
+}
+const ACT={
+  create:createRoom, join:joinRoom, leave:leaveRoom, start:startNow,
+  set(d){ setSetting(d.k, d.k==='mode'?d.v:Number(d.v)); },
+  step(d){ const s=room.settings, lim={lotSize:[2,6], lotCount:[2,20]}[d.k]; const v=Math.max(lim[0],Math.min(lim[1],s[d.k]+Number(d.d))); if(v!==s[d.k]) setSetting(d.k,v); },
+  bid(d){ const a=Number(d.a); tx(r => doBid(r,pid,a)); },
+  bidCustom(){ const a=parseInt(ui.bidInput,10); if(!Number.isInteger(a) || a<=room.cur.bid || a>room.players[pid].budget){ ui.err='Mise invalide (entre '+(room.cur.bid+1)+' et '+room.players[pid].budget+').'; return render(); } ui.err=''; tx(r => doBid(r,pid,a)); },
+  pass(){ tx(r => doPass(r,pid)); },
+  force(){ tx(r => r.host===pid && r.cur ? doPass(r,r.cur.turn) : false); },
+  next(){ tx(r => r.host===pid ? nextLot(r) : false); },
+  vote(d){ tx(r => doVote(r,pid,d.t)); },
+  endVote(){ tx(r => { if(r.host!==pid || r.status!=='vote') return false; r.status='end'; }); },
+  replay(){ tx(r => r.host===pid ? resetRoom(r) : false); },
+  teams(){ ui.showTeams=!ui.showTeams; render(); },
+  react(d){
+    if(!EMO.includes(d.e) || !inRoom() || Date.now()-lastSent<700) return;
+    lastSent=Date.now();
+    tx(r => { r.react={p:pid, e:d.e, t:Date.now()}; });
+  },
+  mute(){ ui.mute=!ui.mute; save('ea_mute',ui.mute); if(!ui.mute){ unlockAudio(); tone(880,.1); } render(); },
+  async copy(){
+    const link=location.origin+location.pathname+'?salle='+code;
+    try{ await navigator.clipboard.writeText(link); ui.copied=true; }catch(e){ ui.copied=link; }
+    render(); setTimeout(() => { ui.copied=false; render(); }, 2500);
+  }
+};
+document.addEventListener('click', unlockAudio, true);
+document.addEventListener('click', e => {
+  const b=e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const f=ACT[b.dataset.act]; if(f) f(b.dataset);
+});
+$app.addEventListener('input', e => { const k=e.target.dataset.bind; if(k) ui[k]=e.target.value; });
+$app.addEventListener('keydown', e => {
+  if(e.key!=='Enter' || e.target.tagName!=='INPUT') return;
+  const k=e.target.dataset.bind;
+  if(k==='joinCode') joinRoom(); else if(k==='bidInput') ACT.bidCustom();
+});
+
+/* ---------- affichage ---------- */
+/* ---------- images des persos ----------
+   Dépose tes images dans un dossier "images" à côté de index.html.
+   Nom du fichier = nom du perso en minuscules, sans accents, espaces remplacés par des tirets.
+   Ex. : images/goku.jpg, images/barbe-blanche.png. Formats acceptés : jpg, png, webp.
+   Si deux persos ont le même nom dans deux animes, on ajoute l'anime : images/king-one-punch-man.jpg */
+const IMG_DIR='images/', IMG_EXT=['jpg','png','webp','jpeg'], imgCache={};
+function slug(x){ return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+const DUP_NAMES=(function(){ const c={}; animePool().forEach(ch => { const k=slug(ch.n); c[k]=(c[k]||0)+1; }); return c; })();
+function imgKey(ch){ const k=slug(ch.n); return DUP_NAMES[k]>1 && ch.s ? k+'-'+slug(ch.s) : k; }
+function hue(x){ let h=0; x=String(x); for(let i=0;i<x.length;i++) h=(h*31+x.charCodeAt(i))%360; return h; }
+function initials(n){ const w=String(n).trim().split(/[\s\-]+/).filter(Boolean); return ((w[0]||'?')[0]+(w.length>1?w[1][0]:'')).toUpperCase(); }
+function avatarHTML(ch){
+  const k=imgKey(ch), h=hue(ch.s||ch.n), known=imgCache[k];
+  const img = (!k || known===false) ? '' : '<img class="pic" alt="" data-k="'+esc(k)+'" data-i="'+(known?IMG_EXT.indexOf(known):0)+'" src="'+IMG_DIR+esc(k)+'.'+(known||IMG_EXT[0])+'">';
+  return '<div class="av" style="background:linear-gradient(150deg,hsl('+h+',60%,38%),hsl('+((h+40)%360)+',55%,22%))"><span>'+esc(initials(ch.n))+'</span>'+img+'</div>';
+}
+document.addEventListener('error', e => {
+  const im=e.target; if(!im || !im.classList || !im.classList.contains('pic')) return;
+  const i=Number(im.dataset.i)+1, k=im.dataset.k;
+  if(i<IMG_EXT.length){ im.dataset.i=i; im.src=IMG_DIR+k+'.'+IMG_EXT[i]; } else { imgCache[k]=false; im.remove(); }
+}, true);
+document.addEventListener('load', e => {
+  const im=e.target; if(im && im.classList && im.classList.contains('pic')) imgCache[im.dataset.k]=IMG_EXT[Number(im.dataset.i)];
+}, true);
+function tierOf(ch){ return PTS[ch.t] ? ch.t : 'B'; }
+function badge(ch){ const t=tierOf(ch); return '<span class="tier t'+t+'">'+t+'</span>'; }
+function cardHTML(ch, cls, delay, showTier){
+  return '<div class="card '+cls+(showTier?' r'+tierOf(ch):'')+'" style="animation-delay:'+delay+'s">'+(showTier?badge(ch):'')+avatarHTML(ch)+'<div class="n">'+esc(ch.n)+'</div>'+(ch.s?'<div class="s">'+esc(ch.s)+'</div>':'')+'</div>';
+}
+function lotHTML(lot, revealed){
+  const cs=arr(lot.c);
+  return '<div class="lot">'+cs.map((ch,i) => {
+    if(!revealed) return i===0 ? cardHTML(ch,'vis',0,false) : '<div class="card hid"><div class="q">?</div></div>';
+    return i===0 ? cardHTML(ch,'',0,true) : cardHTML(ch,'flip',0.4+(i-1)*REVEAL_STEP,true);
+  }).join('')+'</div>';
+}
+function verdictHTML(lot, c){
+  const n=arr(lot.c).length, sc=lotScore(lot), avg=sc/n, delay=0.4+(n-1)*REVEAL_STEP+0.3;
+  const v = avg>=6 ? ['JACKPOT 🔥','var(--gold)'] : avg>=3.5 ? ['Bon lot 👍','var(--green)'] : avg>=2.2 ? ['Bof… 😬','var(--mut)'] : ['ARNAQUE 🤡','var(--red)'];
+  return '<div class="verdict" style="animation-delay:'+delay+'s"><div class="v" style="color:'+v[1]+'">'+v[0]+'</div><div class="muted">Valeur du lot : '+sc+' pts'+(c.winner?' · payé '+c.price+'💰':'')+'</div></div>';
+}
+function rbarHTML(){
+  if(!inRoom()) return '';
+  return '<div class="rbar">'+EMO.map(e => '<button data-act="react" data-e="'+e+'">'+e+'</button>').join('')+'<button class="mute" data-act="mute">'+(ui.mute?'🔇':'🔊')+'</button></div>';
+}
+function teamHTML(p){
+  const lots=arr(room.lots), t=arr(room.players[p].team);
+  if(!t.length) return '<p class="muted">Aucun personnage.</p>';
+  return '<div class="team">'+t.map(i => arr(lots[i].c).map(ch => '<div class="t">'+badge(ch)+'<span>'+esc(ch.n)+(ch.s?' <small>· '+esc(ch.s)+'</small>':'')+'</span></div>').join('')).join('')+'</div>';
+}
+function chipsHTML(){
+  return '<div class="chips">'+arr(room.order).map(p => {
+    const pl=room.players[p], c=room.cur, bidding=room.status==='bidding';
+    const cls=(p===pid?' me':'')+(bidding&&c.turn===p?' turn':'')+(bidding&&!isActive(room,p)?' out':'');
+    return '<div class="chip'+cls+'">'+esc(pl.name)+' <b>'+pl.budget+'💰</b></div>';
+  }).join('')+'</div>';
+}
+function errHTML(){ return ui.err ? '<div class="err">'+esc(ui.err)+'</div>' : ''; }
+
+function viewSetup(){
+  return '<h1>Enchères <span>à l\'aveugle</span></h1>'+
+  '<div class="panel"><h2 style="margin-top:0">Dernière étape : Firebase</h2>'+
+  '<p>Le jeu a besoin d\'une base de données Firebase pour que chaque ami joue sur son téléphone.</p>'+
+  '<p><b style="color:var(--txt)">1.</b> Crée un projet sur console.firebase.google.com et active <b style="color:var(--txt)">Realtime Database</b>.</p>'+
+  '<p><b style="color:var(--txt)">2.</b> Dans l\'onglet <b style="color:var(--txt)">Règles</b>, colle ceci et publie :</p>'+
+  '<pre>{\n  "rules": {\n    "encheres": {\n      "$salle": { ".read": true, ".write": true }\n    }\n  }\n}</pre>'+
+  '<p><b style="color:var(--txt)">3.</b> Ajoute une application Web au projet, copie sa config et colle-la dans <b style="color:var(--txt)">firebaseConfig</b> en haut du script de ce fichier.</p></div>';
+}
+function viewHome(){
+  return '<h1>Enchères <span>à l\'aveugle</span></h1>'+
+  '<p class="center">Tu vois le premier perso du lot. Le reste est caché. Tu mises ou tu passes. La meilleure équipe gagne.</p>'+errHTML()+
+  '<div class="panel"><label>Ton nom</label><input data-bind="name" maxlength="16" placeholder="Ex. Kev" value="'+esc(ui.name)+'">'+
+  '<button data-act="create"'+(ui.busy?' disabled':'')+'>Créer une salle</button></div>'+
+  '<div class="panel"><label>Code de la salle</label><input data-bind="joinCode" maxlength="4" autocapitalize="characters" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:22px" value="'+esc(ui.joinCode)+'">'+
+  '<button class="sec" data-act="join"'+(ui.busy?' disabled':'')+'>Rejoindre</button></div>';
+}
+function viewLobby(){
+  const s=room.settings, host=isHost(), ps=Object.keys(room.players).sort((a,b) => room.players[a].joinedAt-room.players[b].joinedAt);
+  const need=s.lotSize*s.lotCount;
+  let h='<p class="center" style="margin-top:14px">Code de la salle</p><div class="code">'+esc(code)+'</div>'+
+  '<button class="sec" data-act="copy">'+(ui.copied===true?'Lien copié ✓':'Copier le lien d\'invitation')+'</button>'+
+  (typeof ui.copied==='string'?'<p class="muted" style="word-break:break-all">'+esc(ui.copied)+'</p>':'')+
+  '<div class="panel"><h2 style="margin-top:0">Joueurs ('+ps.length+'/'+MAX_PLAYERS+')</h2><div class="chips">'+
+  ps.map(p => '<div class="chip'+(p===pid?' me':'')+'">'+(p===room.host?'👑 ':'')+esc(room.players[p].name)+'</div>').join('')+'</div></div>';
+  if(host){
+    h+='<div class="panel"><h2 style="margin-top:0">Réglages</h2>'+
+    '<label>Budget de départ</label><div class="opt">'+[50,100,200,500].map(v => '<button data-act="set" data-k="budget" data-v="'+v+'" class="'+(s.budget===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<label>Persos par lot (1 visible, le reste caché)</label><div class="step"><button data-act="step" data-k="lotSize" data-d="-1">−</button><div class="val">'+s.lotSize+'</div><button data-act="step" data-k="lotSize" data-d="1">+</button></div>'+
+    '<label>Nombre de lots</label><div class="step"><button data-act="step" data-k="lotCount" data-d="-1">−</button><div class="val">'+s.lotCount+'</div><button data-act="step" data-k="lotCount" data-d="1">+</button></div>'+
+    '<label>Personnages</label><div class="opt">'+[['anime','Anime'],['custom','Ma liste'],['mix','Les deux']].map(m => '<button data-act="set" data-k="mode" data-v="'+m[0]+'" class="'+(s.mode===m[0]?'on':'')+'">'+m[1]+'</button>').join('')+'</div>'+
+    (s.mode!=='anime'?'<label>Ta liste : un perso par ligne, ex. « Goku - Dragon Ball - S ». Le rang (S, A, B ou C) est facultatif. Il en faut '+need+' au total.</label><textarea data-bind="custom" placeholder="Goku - Dragon Ball - S&#10;Yamcha - Dragon Ball - C">'+esc(ui.custom)+'</textarea>':'')+
+    '</div>'+errHTML()+
+    '<button data-act="start"'+(ps.length<2?' disabled':'')+'>'+(ps.length<2?'En attente d\'un 2e joueur…':'Lancer la partie')+'</button>';
+  } else {
+    h+='<div class="panel"><p>Budget : <b style="color:var(--gold)">'+s.budget+'💰</b> · '+s.lotCount+' lots de '+s.lotSize+' persos</p><p>En attente que '+esc(pname(room.host))+' lance la partie…</p></div>';
+  }
+  return h+'<button class="ghost" data-act="leave">Quitter</button>';
+}
+function myTeamHTML(){
+  if(!inRoom()) return '';
+  return '<div class="panel"><div class="rank"><h2 style="margin:0">Mon équipe</h2><span class="score">'+teamScore(room,pid)+' pts</span></div>'+teamHTML(pid)+'</div>';
+}
+function viewBidding(){
+  const c=room.cur, lots=arr(room.lots), lot=lots[c.idx], mine=c.turn===pid, me=room.players[pid];
+  let h='<div class="top"><div class="disp">Lot '+(c.idx+1)+' / '+lots.length+'</div><button class="sec sm" data-act="teams">'+(ui.showTeams?'Fermer':'Équipes')+'</button></div>'+chipsHTML();
+  if(ui.showTeams) return h+arr(room.order).map(p => '<div class="panel"><div class="rank"><b>'+esc(pname(p))+'</b><span class="score">'+teamScore(room,p)+' pts</span></div>'+teamHTML(p)+'</div>').join('')+rbarHTML();
+  h+=lotHTML(lot,false)+
+  '<div class="bid"><div class="amt">'+c.bid+'💰</div><div class="who">'+(c.bidder?'Mise de '+esc(pname(c.bidder)):'Aucune mise pour l\'instant')+'</div></div>';
+  if(mine){
+    const max=me.budget, incs=[1,5,10,25].filter(x => c.bid+x<=max);
+    h+='<div class="turnbar mine">À toi de jouer !</div>'+errHTML()+
+    '<div class="grid2">'+incs.map(x => '<button data-act="bid" data-a="'+(c.bid+x)+'">Miser '+(c.bid+x)+' <small>(+'+x+')</small></button>').join('')+'</div>'+
+    '<div class="row" style="margin-top:8px"><input data-bind="bidInput" type="number" inputmode="numeric" min="'+(c.bid+1)+'" max="'+max+'" placeholder="Autre montant (max '+max+')" value="'+esc(ui.bidInput)+'"><button class="sec" style="flex:none;width:96px;margin:0" data-act="bidCustom">Miser</button></div>'+
+    '<button class="red" data-act="pass">Je passe</button>';
+  } else {
+    h+='<div class="turnbar">Au tour de <b style="color:var(--txt)">'+esc(pname(c.turn))+'</b>…</div>'+
+    (inRoom() && !isActive(room,pid)?'<p class="center">Tu es sorti de cette enchère.</p>':'')+
+    (isHost()?'<button class="ghost" data-act="force">Faire passer '+esc(pname(c.turn))+' (s\'il ne répond plus)</button>':'');
+  }
+  if(!inRoom()) h+='<p class="center">Partie en cours — tu es spectateur.</p>';
+  return h+myTeamHTML()+rbarHTML();
+}
+function viewReveal(){
+  const c=room.cur, lots=arr(room.lots), last=c.idx+1>=lots.length;
+  return '<div class="top"><div class="disp">Lot '+(c.idx+1)+' / '+lots.length+'</div></div>'+chipsHTML()+
+  '<div class="win">'+(c.winner?'<b>'+esc(pname(c.winner))+'</b> remporte le lot pour <b>'+c.price+'💰</b>':'Personne n\'a misé : lot retiré')+'</div>'+
+  lotHTML(lots[c.idx],true)+verdictHTML(lots[c.idx],c)+
+  (isHost()?'<button data-act="next">'+(last?'Voir les résultats':'Lot suivant')+'</button>':'<div class="turnbar">En attente de '+esc(pname(room.host))+'…</div>')+
+  myTeamHTML()+rbarHTML();
+}
+function viewVote(){
+  const order=arr(room.order), votes=room.votes||{}, done=order.filter(p => votes[p]).length, voted=votes[pid];
+  return '<h2 class="center" style="font-size:34px">Vote coup de cœur</h2><p class="center">Le score décide du gagnant. Ici, tu votes pour l\'équipe que tu préfères (pas la tienne). '+done+' / '+order.length+' ont voté.</p>'+
+  order.map(p => '<div class="panel"><div class="rank"><b>'+esc(pname(p))+(p===pid?' (toi)':'')+'</b>'+
+    (inRoom() && p!==pid?'<button class="sm '+(voted===p?'':'sec')+'" data-act="vote" data-t="'+p+'">'+(voted===p?'Voté ✓':'Voter')+'</button>':'<span class="score">'+teamScore(room,p)+' pts</span>')+'</div>'+teamHTML(p)+'</div>').join('')+
+  (isHost()?'<button class="ghost" data-act="endVote">Terminer le vote maintenant</button>':'')+rbarHTML();
+}
+function viewEnd(){
+  const order=arr(room.order), votes=room.votes||{}, n={}, sc={};
+  order.forEach(p => { n[p]=0; sc[p]=teamScore(room,p); });
+  Object.values(votes).forEach(t => { if(t in n) n[t]++; });
+  const hasVotes=Object.keys(votes).length>0;
+  const sorted=order.slice().sort((a,b) => sc[b]-sc[a] || room.players[b].budget-room.players[a].budget);
+  const best=sc[sorted[0]], topV=Math.max.apply(null, order.map(p => n[p]));
+  return '<h1>Résultats</h1><p class="center">Le meilleur score gagne. S = '+PTS.S+' pts, A = '+PTS.A+', B = '+PTS.B+', C = '+PTS.C+'.</p>'+
+  sorted.map((p,i) => '<div class="panel"><div class="rank"><b>'+(sc[p]===best&&best>0?'🏆 ':(i+1)+'. ')+esc(pname(p))+(hasVotes&&n[p]===topV&&topV>0?' ❤️':'')+'</b><span class="score">'+sc[p]+' pts</span></div>'+
+    '<div class="muted">'+(hasVotes?n[p]+' vote'+(n[p]>1?'s':'')+' coup de cœur · ':'')+'reste '+room.players[p].budget+'💰</div>'+teamHTML(p)+'</div>').join('')+
+  (isHost()?'<button data-act="replay">Rejouer</button>':'<div class="turnbar">En attente de '+esc(pname(room.host))+' pour rejouer…</div>')+
+  '<button class="ghost" data-act="leave">Quitter</button>'+rbarHTML();
+}
+function render(){
+  const f=document.activeElement, fk=f && f.dataset ? f.dataset.bind : null, pos=fk ? f.selectionStart : null;
+  let h;
+  if(!configured) h=viewSetup();
+  else if(!room) h=viewHome();
+  else if(room.status==='lobby') h=viewLobby();
+  else if(room.status==='bidding') h=viewBidding();
+  else if(room.status==='reveal') h=viewReveal();
+  else if(room.status==='vote') h=viewVote();
+  else h=viewEnd();
+  const key=h.replace(/<img[^>]*>/g,'');
+  if(key===lastHTML) return;   // rien n'a changé à l'écran (ex. une réaction emoji) : on ne rejoue pas les animations
+  lastHTML=key;
+  $app.innerHTML=h;
+  if(fk){ const el=$app.querySelector('[data-bind="'+fk+'"]'); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(e){} } }
+}
+
+/* ---------- démarrage ---------- */
+(async function init(){
+  const q=new URLSearchParams(location.search).get('salle');
+  const sess=load('ea_session');
+  if(sess && sess.name) ui.name=sess.name;
+  ui.mute=load('ea_mute')===true;
+  if(q) ui.joinCode=q.toUpperCase().slice(0,4);
+  if(!configured) return render();
+  try{ firebase.initializeApp(firebaseConfig); db=firebase.database(); }
+  catch(e){ ui.err='Config Firebase invalide : '+e.message; return render(); }
+  render();
+  if(sess && sess.code && sess.pid && (!q || q.toUpperCase()===sess.code)){
+    try{
+      const snap=await db.ref('encheres/'+sess.code).once('value'), r=snap.val();
+      if(r && r.players && r.players[sess.pid]) attach(sess.code, sess.pid); else drop('ea_session');
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
